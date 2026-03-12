@@ -3,10 +3,10 @@ import { useProcess } from "@/contexts/ProcessContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { generateProcessNumber, getCurrentDateTime, mockOrgaosJulgadores } from "@/data/mockData";
-import { CheckCircle, Download, ArrowLeft } from "lucide-react";
+import { CheckCircle, Download, ArrowLeft, FileText, Eye } from "lucide-react";
 
 const StepResumo = () => {
-  const { data, setCurrentStep, resetProcess } = useProcess();
+  const { data, resetProcess } = useProcess();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [protocolado, setProtocolado] = useState(false);
@@ -31,195 +31,200 @@ const StepResumo = () => {
     navigate("/home");
   };
 
-  if (protocolado) {
-    return (
-      <div className="panel-section">
-        <div
-          className="panel-header flex items-center gap-1"
-          style={{ backgroundColor: "hsl(120, 40%, 36%)" }}
-        >
-          <CheckCircle size={12} />
-          Protocolo Realizado com Sucesso
-        </div>
-        <div className="panel-body">
-          <div
-            className="text-center py-3 mb-2 border"
-            style={{
-              backgroundColor: "hsl(120, 40%, 96%)",
-              borderColor: "hsl(120, 40%, 75%)",
-            }}
-          >
-            <div className="text-[11px] font-bold text-foreground mb-0.5 uppercase">Processo Protocolado</div>
-            <div className="text-lg font-bold text-primary">{numProcesso}</div>
-          </div>
-
-          <fieldset className="pje-fieldset">
-            <legend className="pje-fieldset-legend">Dados do Protocolo</legend>
-            <table className="data-table">
-              <tbody>
-                <tr><td className="font-bold" style={{ width: "200px" }}>Número do Processo</td><td>{numProcesso}</td></tr>
-                <tr><td className="font-bold">Data/Hora do Protocolo</td><td>{dataProtocolo}</td></tr>
-                <tr><td className="font-bold">Órgão Julgador</td><td>{orgaoJulgador}</td></tr>
-                <tr><td className="font-bold">Classe Judicial</td><td>{data.dadosIniciais?.classeJudicial}</td></tr>
-                <tr><td className="font-bold">Assunto Principal</td><td>{data.assuntos[0]?.descricao || "—"}</td></tr>
-                <tr><td className="font-bold">Peticionante</td><td>{user?.name}</td></tr>
-                <tr>
-                  <td className="font-bold">Status</td>
-                  <td><span className="badge-success">Protocolado</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </fieldset>
-
-          <fieldset className="pje-fieldset">
-            <legend className="pje-fieldset-legend">Documentos Protocolados</legend>
-            <table className="data-table">
-              <thead><tr><th>Tipo</th><th>Descrição</th></tr></thead>
-              <tbody>
-                <tr><td>{data.peticao?.tipoDocumento}</td><td>{data.peticao?.descricao}</td></tr>
-                {data.peticao?.anexos.map((a) => (
-                  <tr key={a.id}><td>{a.tipoDocumento}</td><td>{a.descricao} ({a.nomeArquivo})</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </fieldset>
-
-          <div className="flex gap-2 mt-2">
-            <button className="btn-primary flex items-center gap-0.5" onClick={() => window.print()}>
-              <Download size={10} /> Baixar Recibo
-            </button>
-            <button className="btn-secondary flex items-center gap-0.5" onClick={handleVoltarHome}>
-              <ArrowLeft size={10} /> Voltar para Home
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
-      <div className="panel-section">
-        <div className="panel-header">Protocolando...</div>
-        <div className="panel-body text-center py-8">
-          <div className="animate-spin h-6 w-6 border-3 border-primary border-t-transparent rounded-full mx-auto mb-2" />
-          <p className="text-[10px] text-muted-foreground">Realizando distribuição automática e protocolo do processo...</p>
-          <p className="text-[9px] text-muted-foreground mt-0.5">Aguarde...</p>
+      <div className="text-center py-12">
+        <div className="animate-spin h-8 w-8 border-3 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+        <p className="text-[12px] text-muted-foreground">Realizando distribuição automática e protocolo do processo...</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Aguarde...</p>
+      </div>
+    );
+  }
+
+  if (protocolado) {
+    return (
+      <div>
+        <div className="alert-success mb-4 flex items-center gap-2">
+          <CheckCircle size={16} />
+          <span className="font-bold">Processo protocolado com sucesso!</span>
+        </div>
+
+        <div className="text-center py-4 mb-4 border" style={{ backgroundColor: "hsl(120, 40%, 96%)", borderColor: "hsl(120, 40%, 75%)" }}>
+          <div className="text-[12px] font-bold text-foreground mb-1">Número do Processo</div>
+          <div className="text-xl font-bold" style={{ color: "hsl(187, 45%, 32%)" }}>{numProcesso}</div>
+        </div>
+
+        <table className="data-table mb-4">
+          <tbody>
+            <tr><td className="font-bold" style={{ width: 200 }}>Número do Processo</td><td>{numProcesso}</td></tr>
+            <tr><td className="font-bold">Data/Hora do Protocolo</td><td>{dataProtocolo}</td></tr>
+            <tr><td className="font-bold">Órgão Julgador</td><td>{orgaoJulgador}</td></tr>
+            <tr><td className="font-bold">Classe Judicial</td><td>{data.dadosIniciais?.classeJudicial}</td></tr>
+            <tr><td className="font-bold">Assunto Principal</td><td>{data.assuntos[0]?.descricao || "—"}</td></tr>
+            <tr><td className="font-bold">Peticionante</td><td>{user?.name}</td></tr>
+            <tr><td className="font-bold">Status</td><td><span className="badge-success">Protocolado</span></td></tr>
+          </tbody>
+        </table>
+
+        <div className="flex gap-2">
+          <button className="btn-primary flex items-center gap-1" onClick={() => window.print()}>
+            <Download size={12} /> Baixar Recibo
+          </button>
+          <button className="btn-secondary flex items-center gap-1" onClick={handleVoltarHome}>
+            <ArrowLeft size={12} /> Voltar para Home
+          </button>
         </div>
       </div>
     );
   }
 
+  // Summary view - matching PJE "Protocolar Inicial" page
   return (
-    <div className="panel-section">
-      <div className="panel-header">6. Resumo e Protocolo</div>
-      <div className="panel-body">
-        {/* Dados Iniciais */}
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Dados Iniciais</legend>
-          {data.dadosIniciais ? (
-            <div className="grid grid-cols-2 gap-1 text-[10px]">
-              <div><span className="font-bold">Matéria:</span> {data.dadosIniciais.materia}</div>
-              <div><span className="font-bold">Jurisdição:</span> {data.dadosIniciais.jurisdicao}</div>
-              <div><span className="font-bold">Competência:</span> {data.dadosIniciais.competencia}</div>
-              <div><span className="font-bold">Classe:</span> {data.dadosIniciais.classeJudicial}</div>
-            </div>
-          ) : <p className="text-[10px] text-destructive">Dados iniciais não preenchidos.</p>}
-        </fieldset>
-
-        {/* Assuntos */}
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Assuntos</legend>
-          {data.assuntos.length > 0 ? (
-            <table className="data-table">
-              <thead><tr><th>Código</th><th>Descrição</th></tr></thead>
-              <tbody>
-                {data.assuntos.map((a) => <tr key={a.codigo}><td>{a.codigo}</td><td>{a.descricao}</td></tr>)}
-              </tbody>
-            </table>
-          ) : <p className="text-[10px] text-destructive">Nenhum assunto adicionado.</p>}
-        </fieldset>
-
-        {/* Partes */}
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Polo Ativo</legend>
-          {data.partes.filter((p) => p.polo === "ativo").length > 0 ? (
-            <table className="data-table">
-              <thead><tr><th>Tipo</th><th>Nome</th><th>CPF/CNPJ</th></tr></thead>
-              <tbody>
-                {data.partes.filter((p) => p.polo === "ativo").map((p) => (
-                  <tr key={p.id}><td>{p.tipoParte}</td><td>{p.nome}</td><td>{p.cpfCnpj}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          ) : <p className="text-[10px] text-destructive">Nenhuma parte no polo ativo.</p>}
-        </fieldset>
-
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Polo Passivo</legend>
-          {data.partes.filter((p) => p.polo === "passivo").length > 0 ? (
-            <table className="data-table">
-              <thead><tr><th>Tipo</th><th>Nome</th><th>CPF/CNPJ</th></tr></thead>
-              <tbody>
-                {data.partes.filter((p) => p.polo === "passivo").map((p) => (
-                  <tr key={p.id}><td>{p.tipoParte}</td><td>{p.nome}</td><td>{p.cpfCnpj}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          ) : <p className="text-[10px] text-destructive">Nenhuma parte no polo passivo.</p>}
-        </fieldset>
-
-        {/* Características */}
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Características</legend>
-          {data.caracteristicas ? (
-            <div className="grid grid-cols-2 gap-1 text-[10px]">
-              <div><span className="font-bold">Justiça Gratuita:</span> {data.caracteristicas.justicaGratuita ? "Sim" : "Não"}</div>
-              <div><span className="font-bold">Liminar:</span> {data.caracteristicas.pedidoLiminar ? "Sim" : "Não"}</div>
-              <div><span className="font-bold">Valor da Causa:</span> R$ {data.caracteristicas.valorCausa}</div>
-              <div><span className="font-bold">Segredo de Justiça:</span> {data.caracteristicas.segredoJustica ? "Sim" : "Não"}</div>
-            </div>
-          ) : <p className="text-[10px] text-destructive">Características não preenchidas.</p>}
-        </fieldset>
-
-        {/* Petição */}
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Documento Principal</legend>
-          {data.peticao ? (
-            <div className="text-[10px]">
-              <div><span className="font-bold">Tipo:</span> {data.peticao.tipoDocumento}</div>
-              <div><span className="font-bold">Descrição:</span> {data.peticao.descricao}</div>
-              <div className="mt-1"><span className="font-bold">Conteúdo:</span></div>
-              <div
-                className="border p-1.5 max-h-24 overflow-y-auto text-[9px] font-mono mt-0.5 whitespace-pre-wrap"
-                style={{
-                  backgroundColor: "hsl(220, 14%, 96%)",
-                  borderColor: "hsl(220, 12%, 80%)",
-                }}
-              >
-                {data.peticao.conteudo.substring(0, 500)}{data.peticao.conteudo.length > 500 ? "..." : ""}
-              </div>
-              {data.peticao.anexos.length > 0 && (
-                <div className="mt-1.5">
-                  <span className="font-bold">Anexos:</span>
-                  <table className="data-table mt-0.5">
-                    <thead><tr><th>Tipo</th><th>Descrição</th><th>Arquivo</th></tr></thead>
-                    <tbody>
-                      {data.peticao.anexos.map((a) => (
-                        <tr key={a.id}><td>{a.tipoDocumento}</td><td>{a.descricao}</td><td>{a.nomeArquivo}</td></tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          ) : <p className="text-[10px] text-destructive">Petição não inserida.</p>}
-        </fieldset>
-
-        <div className="flex justify-between mt-2">
-          <button className="btn-secondary" onClick={() => setCurrentStep(4)}>&laquo; Voltar para edição</button>
-          <button className="btn-primary" onClick={handleProtocolar}>Protocolar</button>
+    <div>
+      {/* Dados do processo */}
+      <div className="mb-4">
+        <div className="text-[11px] font-bold text-muted-foreground mb-1 border-b pb-1" style={{ borderColor: "hsl(220,12%,85%)" }}>
+          Dados do processo
         </div>
+        <div className="grid grid-cols-3 gap-x-6 gap-y-1">
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Número do processo</span>
+            <span className="text-[11px]">—</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Órgão julgador</span>
+            <span className="text-[11px]">—</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Data da distribuição</span>
+            <span className="text-[11px]">—</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Jurisdição</span>
+            <span className="text-[11px]">{data.dadosIniciais?.jurisdicao || "—"}</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Classe</span>
+            <span className="text-[11px]">{data.dadosIniciais?.classeJudicial || "—"}</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Valor de causa</span>
+            <span className="text-[11px]">{data.caracteristicas?.valorCausa || "0,00"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Detalhes do processo */}
+      <div className="mb-4">
+        <div className="text-[11px] font-bold text-muted-foreground mb-1 border-b pb-1" style={{ borderColor: "hsl(220,12%,85%)" }}>
+          Detalhes do processo
+        </div>
+        <div className="grid grid-cols-3 gap-x-6 gap-y-2">
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Assuntos</span>
+            {data.assuntos.map((a) => (
+              <div key={a.codigo} className="text-[11px]">{a.descricao.split("|").pop()?.trim()} ({a.codigo})</div>
+            ))}
+            {data.assuntos.length === 0 && <span className="text-[11px] text-destructive">Não informado</span>}
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Polo ativo</span>
+            {data.partes.filter((p) => p.polo === "ativo").map((p) => (
+              <div key={p.id} className="text-[11px]">{p.nome}</div>
+            ))}
+            {data.partes.filter((p) => p.polo === "ativo").length === 0 && <span className="text-[11px] text-destructive">Não informado</span>}
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Polo passivo</span>
+            {data.partes.filter((p) => p.polo === "passivo").map((p) => (
+              <div key={p.id} className="text-[11px]">{p.nome}</div>
+            ))}
+            {data.partes.filter((p) => p.polo === "passivo").length === 0 && <span className="text-[11px] text-destructive">Não informado</span>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-x-6 mt-2">
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Segredo de justiça?</span>
+            <span className="text-[11px]">{data.caracteristicas?.segredoJustica ? "SIM" : "NÃO"}</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Justiça gratuita?</span>
+            <span className="text-[11px]">{data.caracteristicas?.justicaGratuita ? "SIM" : "NÃO"}</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Pedido de liminar ou antecipação de tutela?</span>
+            <span className="text-[11px]">{data.caracteristicas?.pedidoLiminar ? "SIM" : "NÃO"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Documentos */}
+      <div className="mb-4">
+        <div className="text-[11px] font-bold text-muted-foreground mb-1 border-b pb-1" style={{ borderColor: "hsl(220,12%,85%)" }}>
+          Documentos
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Id na origem</th>
+              <th>Número</th>
+              <th>Origem</th>
+              <th>Juntado em</th>
+              <th>Juntado por</th>
+              <th>Documento</th>
+              <th>Tipo</th>
+              <th>Anexos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.peticao && (
+              <tr>
+                <td>{Math.floor(10000000000 + Math.random() * 90000000000)}</td>
+                <td></td>
+                <td>1° Grau</td>
+                <td className="text-[10px]">&lt;Documento ainda não juntado ao processo&gt;</td>
+                <td>{data.peticao.descricao}</td>
+                <td>{data.peticao.tipoDocumento}</td>
+                <td>
+                  <div className="flex gap-1">
+                    <Eye size={11} className="text-accent cursor-pointer" />
+                  </div>
+                </td>
+                <td></td>
+                <td>{data.peticao.anexos.length}</td>
+              </tr>
+            )}
+            {data.peticao?.anexos.map((a) => (
+              <tr key={a.id}>
+                <td>{Math.floor(10000000000 + Math.random() * 90000000000)}</td>
+                <td></td>
+                <td>1° Grau</td>
+                <td className="text-[10px]">&lt;Documento ainda não juntado ao processo&gt;</td>
+                <td>{a.descricao}</td>
+                <td>{a.tipoDocumento}</td>
+                <td>
+                  <div className="flex gap-1">
+                    <Eye size={11} className="text-accent cursor-pointer" />
+                  </div>
+                </td>
+                <td></td>
+                <td>0</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.peticao && (
+          <div className="text-[10px] text-muted-foreground mt-1">
+            {1 + (data.peticao?.anexos.length || 0)} resultados encontrados
+          </div>
+        )}
+      </div>
+
+      {/* Protocolar button */}
+      <div>
+        <button className="btn-primary" onClick={handleProtocolar}>PROTOCOLAR</button>
       </div>
     </div>
   );

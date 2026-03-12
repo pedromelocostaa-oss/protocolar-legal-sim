@@ -8,50 +8,37 @@
   :root {
     --background: 220 14% 96%;
     --foreground: 220 25% 10%;
-
     --card: 0 0% 100%;
     --card-foreground: 220 25% 10%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 10%;
-
     --primary: 220 70% 30%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 220 10% 90%;
     --secondary-foreground: 220 25% 10%;
-
     --muted: 220 10% 94%;
     --muted-foreground: 220 10% 40%;
-
     --accent: 220 55% 42%;
     --accent-foreground: 0 0% 100%;
-
     --destructive: 0 70% 45%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 220 12% 80%;
     --input: 220 12% 78%;
     --ring: 220 70% 30%;
-
     --radius: 0.15rem;
 
-    --sidebar-background: 222 30% 18%;
-    --sidebar-foreground: 220 10% 92%;
-    --sidebar-primary: 220 50% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 30% 24%;
-    --sidebar-accent-foreground: 220 10% 92%;
-    --sidebar-border: 222 20% 28%;
-    --sidebar-ring: 220 50% 50%;
+    /* PJE header - teal */
+    --pje-header: 187 45% 32%;
+    --pje-header-fg: 0 0% 100%;
+    --pje-header-avatar: 187 35% 45%;
 
-    /* PJE-style custom tokens */
-    --header-bg: 222 47% 20%;
-    --header-fg: 220 20% 95%;
-    --header-accent: 220 60% 55%;
-    --nav-bg: 220 20% 30%;
-    --nav-fg: 220 15% 92%;
-    --nav-hover: 220 30% 38%;
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 15% 25%;
+    --sidebar-border: 220 12% 88%;
+    --sidebar-hover: 220 14% 94%;
+    --sidebar-active: 187 45% 95%;
+
     --success: 120 40% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 40 85% 50%;
@@ -60,10 +47,10 @@
     --info-foreground: 0 0% 100%;
     --panel-header: 222 40% 28%;
     --panel-header-foreground: 0 0% 100%;
-    --tab-active: 220 70% 30%;
-    --tab-inactive: 220 8% 55%;
-    --table-header: 220 18% 88%;
-    --table-stripe: 220 12% 96%;
+    --tab-active: 187 45% 32%;
+    --tab-inactive: 220 8% 45%;
+    --table-header: 220 18% 92%;
+    --table-stripe: 220 12% 97%;
     --field-bg: 0 0% 100%;
     --field-border: 220 12% 72%;
     --section-title: 222 40% 28%;
@@ -77,19 +64,99 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Open Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 11px;
-    line-height: 1.35;
+    font-size: 12px;
+    line-height: 1.4;
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Open Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
   select, input, textarea {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
 @layer components {
+  /* ===== PJE HEADER (teal bar) ===== */
+  .pje-header {
+    @apply flex items-center justify-between px-3 py-2;
+    background-color: hsl(var(--pje-header));
+    color: hsl(var(--pje-header-fg));
+  }
+  .pje-header-btn {
+    @apply p-1 hover:opacity-80 cursor-pointer;
+    color: hsl(var(--pje-header-fg));
+  }
+  .pje-header-avatar {
+    @apply w-7 h-7 rounded-full flex items-center justify-center cursor-pointer;
+    background-color: hsl(var(--pje-header-avatar));
+    color: hsl(var(--pje-header-fg));
+  }
+
+  /* ===== LEFT SIDEBAR ===== */
+  .pje-sidebar {
+    @apply border-r flex flex-col;
+    width: 200px;
+    min-width: 200px;
+    background-color: hsl(var(--sidebar-background));
+    border-color: hsl(var(--sidebar-border));
+  }
+  .pje-sidebar-item {
+    @apply flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer border-b transition-colors;
+    color: hsl(var(--sidebar-foreground));
+    border-color: hsl(var(--sidebar-border));
+  }
+  .pje-sidebar-item:hover:not(:disabled) {
+    background-color: hsl(var(--sidebar-hover));
+  }
+  .pje-sidebar-item-active {
+    background-color: hsl(var(--sidebar-active));
+    font-weight: 600;
+  }
+  .pje-sidebar-submenu {
+    border-bottom: 1px solid hsl(var(--sidebar-border));
+  }
+  .pje-sidebar-subitem {
+    @apply block w-full text-left px-6 py-1.5 text-[11px] cursor-pointer transition-colors;
+    color: hsl(var(--sidebar-foreground));
+  }
+  .pje-sidebar-subitem:hover:not(:disabled) {
+    background-color: hsl(var(--sidebar-hover));
+  }
+
+  /* ===== PROCESS DATA BAR ===== */
+  .pje-process-bar {
+    @apply px-4 py-2 border-b bg-card;
+    border-color: hsl(var(--border));
+  }
+  .pje-process-bar-label {
+    @apply text-[10px] font-bold text-muted-foreground block;
+  }
+  .pje-process-bar-value {
+    @apply text-[11px] text-foreground block;
+  }
+
+  /* ===== PJE TAB BAR ===== */
+  .pje-tab-bar {
+    @apply flex border-b bg-card overflow-x-auto;
+    border-color: hsl(var(--border));
+  }
+  .pje-tab-item {
+    @apply px-3 py-2 text-[11px] font-semibold cursor-pointer whitespace-nowrap transition-colors;
+    color: hsl(var(--tab-inactive));
+    border-bottom: 2px solid transparent;
+  }
+  .pje-tab-item.active {
+    color: hsl(var(--tab-active));
+    border-bottom-color: hsl(var(--tab-active));
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  .pje-tab-item:hover {
+    color: hsl(var(--tab-active));
+    background-color: hsl(220 14% 96%);
+  }
+
   /* ===== PANELS ===== */
   .panel-section {
     @apply bg-card border border-border;
@@ -100,21 +167,22 @@
     letter-spacing: 0.03em;
   }
   .panel-body {
-    @apply p-2;
+    @apply p-3;
   }
 
   /* ===== FORMS ===== */
   .form-label {
-    @apply text-[10px] font-semibold text-foreground mb-0.5 block uppercase tracking-wide;
+    @apply text-[11px] font-bold text-foreground mb-0.5 block;
   }
   .form-field {
-    @apply text-[11px] border rounded-none px-1.5 py-1 bg-card text-foreground w-full;
+    @apply text-[12px] border px-2 py-1.5 bg-card text-foreground w-full;
     border-color: hsl(var(--field-border));
     background-color: hsl(var(--field-bg));
+    border-radius: 0;
   }
   .form-field:focus {
-    outline: 1px solid hsl(var(--primary));
-    border-color: hsl(var(--primary));
+    outline: 2px solid hsl(var(--pje-header));
+    border-color: hsl(var(--pje-header));
   }
   .form-field:disabled {
     background-color: hsl(var(--muted));
@@ -122,14 +190,14 @@
 
   /* ===== BUTTONS ===== */
   .btn-system {
-    @apply text-[10px] font-bold px-2.5 py-1 border cursor-pointer transition-colors uppercase tracking-wide;
+    @apply text-[11px] font-bold px-3 py-1.5 border cursor-pointer transition-colors uppercase tracking-wide;
   }
   .btn-primary {
     @apply btn-system text-primary-foreground border-transparent;
-    background-color: hsl(var(--primary));
+    background-color: hsl(var(--pje-header));
   }
   .btn-primary:hover {
-    background-color: hsl(220 70% 25%);
+    opacity: 0.9;
   }
   .btn-secondary {
     @apply btn-system bg-secondary text-secondary-foreground;
@@ -149,66 +217,51 @@
     @apply btn-system text-destructive-foreground border-transparent;
     background-color: hsl(var(--destructive));
   }
+  .btn-pje {
+    @apply btn-system text-primary-foreground border-transparent;
+    background-color: hsl(var(--pje-header));
+  }
 
   /* ===== TABLES ===== */
   .data-table {
-    @apply w-full text-[10px] border-collapse;
+    @apply w-full text-[11px] border-collapse;
   }
   .data-table th {
-    @apply px-1.5 py-1 text-left font-bold border border-border uppercase tracking-wide;
+    @apply px-2 py-1.5 text-left font-bold border border-border;
     background-color: hsl(var(--table-header));
-    font-size: 10px;
+    font-size: 11px;
   }
   .data-table td {
-    @apply px-1.5 py-1 border border-border;
+    @apply px-2 py-1.5 border border-border;
   }
   .data-table tr:nth-child(even) td {
     background-color: hsl(var(--table-stripe));
   }
   .data-table tr:hover td {
-    background-color: hsl(220 18% 92%);
+    background-color: hsl(220 18% 94%);
   }
 
   /* ===== BREADCRUMB ===== */
   .breadcrumb {
-    @apply text-[10px] text-muted-foreground flex items-center gap-1 px-2 py-1 border-b border-border bg-card;
+    @apply text-[11px] text-muted-foreground flex items-center gap-1 px-3 py-1.5 border-b border-border bg-card;
   }
   .breadcrumb a {
     @apply hover:underline;
     color: hsl(var(--accent));
   }
 
-  /* ===== TABS ===== */
-  .tab-bar {
-    @apply flex border-b border-border bg-card;
-  }
-  .tab-item {
-    @apply px-3 py-1.5 text-[10px] font-semibold cursor-pointer border-b-2 border-transparent transition-colors;
-    color: hsl(var(--tab-inactive));
-  }
-  .tab-item.active {
-    color: hsl(var(--tab-active));
-    border-bottom-color: hsl(var(--tab-active));
-    font-weight: 700;
-  }
-  .tab-item:hover {
-    color: hsl(var(--tab-active));
-    background-color: hsl(220 18% 96%);
-  }
-
-  /* ===== SECTION TITLE ===== */
-  .section-title {
-    @apply text-[10px] font-bold uppercase tracking-wide pb-0.5 mb-1 border-b;
-    color: hsl(var(--section-title));
-    border-color: hsl(var(--border));
-  }
-
   /* ===== CHECKBOX / RADIO (PJE style) ===== */
   .pje-checkbox {
-    @apply flex items-center gap-1.5 text-[10px] cursor-pointer select-none;
+    @apply flex items-center gap-1.5 text-[11px] cursor-pointer select-none;
   }
   .pje-checkbox input[type="checkbox"] {
-    @apply w-3 h-3;
+    @apply w-3.5 h-3.5;
+  }
+  .pje-radio {
+    @apply flex items-center gap-1.5 text-[11px] cursor-pointer select-none;
+  }
+  .pje-radio input[type="radio"] {
+    @apply w-3.5 h-3.5;
   }
 
   /* ===== STATUS BADGES ===== */
@@ -236,30 +289,52 @@
 
   /* ===== FIELDSET (PJE grouping) ===== */
   .pje-fieldset {
-    @apply border border-border p-2 mb-2;
+    @apply border border-border p-3 mb-3;
   }
   .pje-fieldset-legend {
-    @apply text-[10px] font-bold uppercase tracking-wide px-1;
+    @apply text-[11px] font-bold uppercase tracking-wide px-1;
     color: hsl(var(--section-title));
   }
 
   /* ===== ALERT MESSAGES ===== */
   .alert-success {
-    @apply text-[10px] px-2 py-1 border;
+    @apply text-[11px] px-3 py-2 border;
     background-color: hsl(120 40% 95%);
     border-color: hsl(120 40% 70%);
     color: hsl(120 40% 25%);
   }
   .alert-error {
-    @apply text-[10px] px-2 py-1 border;
+    @apply text-[11px] px-3 py-2 border;
     background-color: hsl(0 60% 95%);
     border-color: hsl(0 60% 70%);
     color: hsl(0 60% 30%);
   }
   .alert-info {
-    @apply text-[10px] px-2 py-1 border;
+    @apply text-[11px] px-3 py-2 border;
     background-color: hsl(210 50% 95%);
     border-color: hsl(210 50% 70%);
     color: hsl(210 50% 30%);
+  }
+  .alert-warning {
+    @apply text-[11px] px-3 py-2 border;
+    background-color: hsl(40 80% 95%);
+    border-color: hsl(40 80% 70%);
+    color: hsl(40 80% 25%);
+  }
+
+  /* ===== PJE MODAL ===== */
+  .pje-modal-overlay {
+    @apply fixed inset-0 bg-black/40 flex items-start justify-center pt-16 z-50;
+  }
+  .pje-modal {
+    @apply bg-card border shadow-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto;
+    border-color: hsl(var(--border));
+  }
+  .pje-modal-header {
+    @apply flex items-center justify-between px-4 py-2 border-b font-bold text-[13px];
+    border-color: hsl(var(--border));
+  }
+  .pje-modal-body {
+    @apply p-4;
   }
 }
