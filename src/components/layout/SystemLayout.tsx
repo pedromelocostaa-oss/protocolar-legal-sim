@@ -1,196 +1,154 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut, User, ChevronDown, Home, FileText, Settings, HelpCircle, Bell } from "lucide-react";
+import { Menu, User, ChevronRight, ChevronDown, LayoutDashboard, FolderOpen, CalendarDays, Settings, FileText, Search, MoreHorizontal } from "lucide-react";
 import { ReactNode, useState } from "react";
 
-const SystemLayout = ({ children }: { children: ReactNode }) => {
+interface SystemLayoutProps {
+  children: ReactNode;
+  title?: string;
+  showSidebar?: boolean;
+}
+
+const SystemLayout = ({ children, title = "Quadro de avisos", showSidebar = true }: SystemLayoutProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [processoMenuOpen, setProcessoMenuOpen] = useState(false);
+  const [processoOpen, setProcessoOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
 
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top Header Bar - Dark navy */}
-      <header
-        className="flex items-center justify-between px-3 py-1.5"
-        style={{ backgroundColor: "hsl(222, 47%, 20%)" }}
-      >
+      {/* PJE-style teal header bar */}
+      <header className="pje-header">
         <div className="flex items-center gap-2">
-          <div
-            className="text-[11px] font-bold tracking-wider uppercase"
-            style={{ color: "hsl(220, 20%, 95%)" }}
-          >
-            SAPE — Sistema Acadêmico de Processo Eletrônico
-          </div>
-          <span
-            className="text-[9px] px-1.5 py-0.5 rounded-sm font-semibold"
-            style={{
-              backgroundColor: "hsl(220, 60%, 55%)",
-              color: "hsl(0, 0%, 100%)",
-            }}
-          >
-            SIMULADO
-          </span>
-        </div>
-        <div
-          className="flex items-center gap-3 text-[10px]"
-          style={{ color: "hsl(220, 20%, 85%)" }}
-        >
-          <span className="hidden sm:inline">{currentDate}</span>
-          <button className="hover:opacity-80 relative">
-            <Bell size={12} />
-          </button>
-          <div className="flex items-center gap-1 border-l pl-3" style={{ borderColor: "hsl(222, 30%, 30%)" }}>
-            <User size={11} />
-            <span className="font-semibold">{user?.name}</span>
-          </div>
           <button
-            onClick={handleLogout}
-            className="flex items-center gap-0.5 hover:opacity-80 ml-1"
+            className="pje-header-btn"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           >
-            <LogOut size={11} />
-            <span>Sair</span>
+            <Menu size={16} />
+          </button>
+          <span className="text-[13px] font-semibold tracking-wide">{title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[12px]">{user?.name}</span>
+          <button onClick={handleLogout} className="pje-header-avatar">
+            <User size={14} />
           </button>
         </div>
       </header>
 
-      {/* Navigation Bar - Slightly lighter navy */}
-      <nav
-        className="flex items-center px-1 py-0"
-        style={{ backgroundColor: "hsl(220, 20%, 30%)" }}
-      >
-        <NavButton
-          active={location.pathname === "/home"}
-          onClick={() => navigate("/home")}
-          icon={<Home size={11} />}
-        >
-          Início
-        </NavButton>
-
-        <div
-          className="relative"
-          onMouseEnter={() => setProcessoMenuOpen(true)}
-          onMouseLeave={() => setProcessoMenuOpen(false)}
-        >
-          <NavButton
-            active={location.pathname === "/processo"}
-            onClick={() => navigate("/processo")}
-            icon={<FileText size={11} />}
-            hasDropdown
-          >
-            Processo
-          </NavButton>
-          {processoMenuOpen && (
-            <div
-              className="absolute top-full left-0 z-50 min-w-[160px] border shadow-lg"
-              style={{
-                backgroundColor: "hsl(220, 20%, 28%)",
-                borderColor: "hsl(220, 20%, 22%)",
-              }}
-            >
-              <button
-                className="block w-full text-left px-3 py-1.5 text-[10px] hover:opacity-90"
-                style={{ color: "hsl(220, 15%, 90%)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "hsl(220, 30%, 38%)")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                onClick={() => {
-                  navigate("/processo");
-                  setProcessoMenuOpen(false);
-                }}
-              >
-                Novo Processo
-              </button>
-              <button
-                className="block w-full text-left px-3 py-1.5 text-[10px] hover:opacity-90"
-                style={{ color: "hsl(220, 15%, 90%)" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "hsl(220, 30%, 38%)")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                onClick={() => {
-                  navigate("/meus-processos");
-                  setProcessoMenuOpen(false);
-                }}
-              >
-                Meus Processos
-              </button>
+      <div className="flex flex-1">
+        {/* Left Sidebar */}
+        {showSidebar && !sidebarCollapsed && (
+          <aside className="pje-sidebar">
+            {/* Search */}
+            <div className="px-2 py-1.5 border-b" style={{ borderColor: "hsl(220, 12%, 88%)" }}>
+              <div className="flex items-center gap-1">
+                <Search size={12} className="text-muted-foreground" />
+                <input
+                  className="text-[11px] border-none bg-transparent outline-none flex-1"
+                  placeholder="Acesso rápido"
+                />
+              </div>
             </div>
-          )}
-        </div>
 
-        <NavButton disabled icon={<Settings size={11} />}>
-          Configurações
-        </NavButton>
+            <SidebarItem
+              icon={<LayoutDashboard size={14} />}
+              label="Painel"
+              disabled
+            />
 
-        <NavButton disabled icon={<HelpCircle size={11} />}>
-          Ajuda
-        </NavButton>
-      </nav>
+            {/* Processo with submenu */}
+            <div>
+              <button
+                className="pje-sidebar-item w-full"
+                onClick={() => setProcessoOpen(!processoOpen)}
+              >
+                <FolderOpen size={14} />
+                <span className="flex-1 text-left font-semibold">PROCESSO</span>
+                {processoOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              </button>
+              {processoOpen && (
+                <div className="pje-sidebar-submenu">
+                  <button
+                    className="pje-sidebar-subitem"
+                    onClick={() => navigate("/processo")}
+                  >
+                    Novo processo
+                  </button>
+                  <button className="pje-sidebar-subitem opacity-40 cursor-not-allowed" disabled>
+                    Novo processo incidental
+                  </button>
+                  <button
+                    className="pje-sidebar-subitem"
+                    onClick={() => navigate("/meus-processos")}
+                  >
+                    Não protocolado
+                  </button>
+                  <button
+                    className="pje-sidebar-subitem"
+                    onClick={() => navigate("/meus-processos")}
+                  >
+                    Pesquisar
+                  </button>
+                  <button className="pje-sidebar-subitem opacity-40 cursor-not-allowed" disabled>
+                    Outras ações
+                  </button>
+                </div>
+              )}
+            </div>
 
-      {/* Content */}
-      <main className="flex-1 bg-background">{children}</main>
+            <SidebarItem
+              icon={<FileText size={14} />}
+              label="Atividades"
+              disabled
+            />
+            <SidebarItem
+              icon={<CalendarDays size={14} />}
+              label="Audiências e sessões"
+              disabled
+            />
+            <SidebarItem
+              icon={<Settings size={14} />}
+              label="Configuração"
+              disabled
+            />
+          </aside>
+        )}
 
-      {/* Footer */}
-      <footer
-        className="px-3 py-1 text-[9px] text-center border-t"
-        style={{
-          backgroundColor: "hsl(220, 14%, 94%)",
-          borderColor: "hsl(220, 12%, 80%)",
-          color: "hsl(220, 10%, 45%)",
-        }}
-      >
-        SAPE — Sistema Acadêmico de Processo Eletrônico Simulado | Ambiente exclusivamente acadêmico | Sem vínculo com órgãos oficiais | v1.0.0
-      </footer>
+        {/* Main content */}
+        <main className="flex-1 bg-background">{children}</main>
+      </div>
     </div>
   );
 };
 
-const NavButton = ({
-  children,
-  active,
-  onClick,
+const SidebarItem = ({
   icon,
-  hasDropdown,
+  label,
+  onClick,
+  active,
   disabled,
 }: {
-  children: ReactNode;
-  active?: boolean;
+  icon: ReactNode;
+  label: string;
   onClick?: () => void;
-  icon?: ReactNode;
-  hasDropdown?: boolean;
+  active?: boolean;
   disabled?: boolean;
 }) => (
   <button
+    className={`pje-sidebar-item w-full ${disabled ? "opacity-40 cursor-not-allowed" : ""} ${active ? "pje-sidebar-item-active" : ""}`}
     onClick={disabled ? undefined : onClick}
-    className={`flex items-center gap-1 px-3 py-1.5 text-[10px] font-semibold transition-colors ${
-      disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
-    }`}
-    style={{
-      backgroundColor: active ? "hsl(220, 30%, 38%)" : "transparent",
-      color: "hsl(220, 15%, 92%)",
-    }}
-    onMouseEnter={(e) => {
-      if (!disabled && !active) e.currentTarget.style.backgroundColor = "hsl(220, 30%, 38%)";
-    }}
-    onMouseLeave={(e) => {
-      if (!disabled && !active) e.currentTarget.style.backgroundColor = "transparent";
-    }}
     disabled={disabled}
   >
     {icon}
-    {children}
-    {hasDropdown && <ChevronDown size={9} />}
+    <span className="flex-1 text-left">{label}</span>
+    <ChevronRight size={12} className="opacity-40" />
   </button>
 );
 

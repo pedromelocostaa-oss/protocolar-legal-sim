@@ -8,20 +8,18 @@ import StepCaracteristicas from "@/components/processo/StepCaracteristicas";
 import StepPeticao from "@/components/processo/StepPeticao";
 import StepResumo from "@/components/processo/StepResumo";
 import { useAuth } from "@/contexts/AuthContext";
-import { CheckCircle } from "lucide-react";
 
 const steps = [
-  "Dados Iniciais",
-  "Assuntos",
-  "Partes",
-  "Características",
-  "Petições e Documentos",
-  "Resumo e Protocolo",
+  "DADOS INICIAIS",
+  "ASSUNTOS",
+  "PARTES",
+  "CARACTERÍSTICAS",
+  "INCLUIR PETIÇÕES E DOCUMENTOS",
+  "PROTOCOLAR INICIAL",
 ];
 
 const ProcessoContent = () => {
-  const { currentStep, setCurrentStep } = useProcess();
-  const navigate = useNavigate();
+  const { currentStep, setCurrentStep, data } = useProcess();
 
   const renderStep = () => {
     switch (currentStep) {
@@ -36,51 +34,55 @@ const ProcessoContent = () => {
   };
 
   return (
-    <>
-      <div className="breadcrumb">
-        <a href="#" onClick={(e) => { e.preventDefault(); navigate("/home"); }}>Início</a>
-        <span>&gt;</span>
-        <span>Processo</span>
-        <span>&gt;</span>
-        <span>Novo Processo</span>
-        <span>&gt;</span>
-        <span className="font-bold text-foreground">{steps[currentStep]}</span>
-      </div>
-
-      <div className="p-2">
-        {/* Step indicator bar */}
-        <div className="panel-section mb-2">
-          <div className="panel-header flex items-center gap-1">
-            <CheckCircle size={11} />
-            Novo Processo — Cadastro
+    <div>
+      {/* Process data summary bar */}
+      <div className="pje-process-bar">
+        <div className="grid grid-cols-3 gap-x-6 gap-y-0.5">
+          <div>
+            <span className="pje-process-bar-label">Número do processo</span>
+            <span className="pje-process-bar-value">—</span>
           </div>
-          <div className="tab-bar">
-            {steps.map((step, i) => (
-              <button
-                key={i}
-                className={`tab-item ${i === currentStep ? "active" : ""}`}
-                onClick={() => setCurrentStep(i)}
-              >
-                <span
-                  className="inline-flex items-center justify-center w-3.5 h-3.5 text-[8px] font-bold mr-0.5 border"
-                  style={{
-                    borderColor: i === currentStep ? "hsl(220, 70%, 30%)" : "hsl(220, 8%, 55%)",
-                    backgroundColor: i < currentStep ? "hsl(220, 70%, 30%)" : "transparent",
-                    color: i < currentStep ? "white" : "inherit",
-                    borderRadius: "1px",
-                  }}
-                >
-                  {i < currentStep ? "✓" : i + 1}
-                </span>
-                {step}
-              </button>
-            ))}
+          <div>
+            <span className="pje-process-bar-label">Órgão julgador</span>
+            <span className="pje-process-bar-value">—</span>
+          </div>
+          <div>
+            <span className="pje-process-bar-label">Data da distribuição</span>
+            <span className="pje-process-bar-value">—</span>
+          </div>
+          <div>
+            <span className="pje-process-bar-label">Jurisdição</span>
+            <span className="pje-process-bar-value">{data.dadosIniciais?.jurisdicao || "—"}</span>
+          </div>
+          <div>
+            <span className="pje-process-bar-label">Classe</span>
+            <span className="pje-process-bar-value">{data.dadosIniciais?.classeJudicial || "—"}</span>
+          </div>
+          <div>
+            <span className="pje-process-bar-label">Valor de causa</span>
+            <span className="pje-process-bar-value">{data.caracteristicas?.valorCausa || "0,00"}</span>
           </div>
         </div>
+      </div>
 
+      {/* PJE-style text tab navigation */}
+      <div className="pje-tab-bar">
+        {steps.map((step, i) => (
+          <button
+            key={i}
+            className={`pje-tab-item ${i === currentStep ? "active" : ""}`}
+            onClick={() => setCurrentStep(i)}
+          >
+            {step}
+          </button>
+        ))}
+      </div>
+
+      {/* Step content */}
+      <div className="p-3">
         {renderStep()}
       </div>
-    </>
+    </div>
   );
 };
 
@@ -95,7 +97,7 @@ const ProcessoPage = () => {
 
   return (
     <ProcessProvider>
-      <SystemLayout>
+      <SystemLayout title="Cadastro de processo" showSidebar={false}>
         <ProcessoContent />
       </SystemLayout>
     </ProcessProvider>

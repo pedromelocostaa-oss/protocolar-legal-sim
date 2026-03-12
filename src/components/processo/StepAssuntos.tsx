@@ -1,107 +1,131 @@
 import { useState } from "react";
 import { useProcess } from "@/contexts/ProcessContext";
 import { mockAssuntos } from "@/data/mockData";
-import { Plus, X, Search } from "lucide-react";
+import { Plus, X } from "lucide-react";
 
 const StepAssuntos = () => {
-  const { data, addAssunto, removeAssunto, setCurrentStep } = useProcess();
+  const { data, addAssunto, removeAssunto } = useProcess();
   const [busca, setBusca] = useState("");
+  const [codigo, setCodigo] = useState("");
 
-  const filtered = busca.length >= 2
+  const filtered = (busca.length >= 2 || codigo.length >= 2)
     ? mockAssuntos.filter(
         (a) =>
-          a.descricao.toLowerCase().includes(busca.toLowerCase()) ||
-          a.codigo.includes(busca)
+          (busca.length >= 2 && a.descricao.toLowerCase().includes(busca.toLowerCase())) ||
+          (codigo.length >= 2 && a.codigo.includes(codigo))
       )
     : [];
 
   return (
-    <div className="panel-section">
-      <div className="panel-header">2. Assuntos</div>
-      <div className="panel-body">
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Buscar Assunto</legend>
-          <div className="flex items-end gap-2 mb-2">
-            <div className="flex-1">
-              <label className="form-label">Código ou Descrição</label>
-              <div className="flex items-center gap-1">
-                <Search size={11} className="text-muted-foreground" />
-                <input
-                  className="form-field"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                  placeholder="Digite pelo menos 2 caracteres..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {filtered.length > 0 && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "80px" }}>Código</th>
-                  <th>Descrição</th>
-                  <th style={{ width: "80px" }}>Ação</th>
+    <div className="flex gap-4">
+      {/* Left: Assuntos Associados */}
+      <div className="flex-1">
+        <div className="text-[12px] font-bold mb-2">Assuntos Associados*</div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>Cod.</th>
+              <th>Assunto Principal</th>
+              <th>Assunto</th>
+              <th>Complementar?</th>
+              <th style={{ width: 50 }}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.assuntos.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center text-muted-foreground">
+                  0 resultados encontrados
+                </td>
+              </tr>
+            ) : (
+              data.assuntos.map((a) => (
+                <tr key={a.codigo}>
+                  <td>{a.codigo}</td>
+                  <td>{a.descricao.split("|")[0]?.trim()}</td>
+                  <td className="text-[10px]">{a.descricao}</td>
+                  <td>Não</td>
+                  <td>
+                    <button
+                      className="text-destructive hover:underline text-[10px]"
+                      onClick={() => removeAssunto(a.codigo)}
+                    >
+                      <X size={12} />
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((a) => (
-                  <tr key={a.codigo}>
-                    <td>{a.codigo}</td>
-                    <td>{a.descricao}</td>
-                    <td>
-                      <button
-                        className="btn-primary flex items-center gap-0.5"
-                        onClick={() => addAssunto(a)}
-                      >
-                        <Plus size={10} /> Adicionar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </fieldset>
-
-        <fieldset className="pje-fieldset">
-          <legend className="pje-fieldset-legend">Assuntos Associados ao Processo</legend>
-          {data.assuntos.length === 0 ? (
-            <p className="text-[10px] text-muted-foreground italic">Nenhum assunto adicionado.</p>
-          ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "80px" }}>Código</th>
-                  <th>Descrição</th>
-                  <th style={{ width: "80px" }}>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.assuntos.map((a) => (
-                  <tr key={a.codigo}>
-                    <td>{a.codigo}</td>
-                    <td>{a.descricao}</td>
-                    <td>
-                      <button
-                        className="btn-danger flex items-center gap-0.5"
-                        onClick={() => removeAssunto(a.codigo)}
-                      >
-                        <X size={10} /> Remover
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </fieldset>
-
-        <div className="flex justify-between mt-2">
-          <button className="btn-secondary" onClick={() => setCurrentStep(0)}>&laquo; Voltar</button>
-          <button className="btn-primary" onClick={() => setCurrentStep(2)}>Avançar &raquo;</button>
+              ))
+            )}
+          </tbody>
+        </table>
+        <div className="text-[10px] text-muted-foreground mt-1">
+          {data.assuntos.length} resultados encontrados
         </div>
+      </div>
+
+      {/* Right: Search */}
+      <div style={{ width: 350 }}>
+        <div className="mb-2">
+          <label className="form-label">Assunto</label>
+          <input
+            className="form-field"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Digite o assunto..."
+          />
+        </div>
+        <div className="mb-2">
+          <label className="form-label">Código</label>
+          <input
+            className="form-field"
+            value={codigo}
+            onChange={(e) => setCodigo(e.target.value)}
+            placeholder=""
+          />
+        </div>
+        <div className="flex gap-2 mb-3">
+          <button className="btn-primary" onClick={() => {}}>PESQUISAR</button>
+          <button className="btn-secondary" onClick={() => { setBusca(""); setCodigo(""); }}>LIMPAR</button>
+        </div>
+
+        {/* Search results */}
+        <div className="text-[12px] font-bold mb-2">Assuntos*</div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th style={{ width: 30 }}></th>
+              <th>Cod.</th>
+              <th>Assunto</th>
+              <th>Complementar?</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center text-muted-foreground">
+                  {busca.length < 2 && codigo.length < 2 ? "Digite para pesquisar" : "Nenhum resultado"}
+                </td>
+              </tr>
+            ) : (
+              filtered.map((a) => (
+                <tr key={a.codigo}>
+                  <td>
+                    <button
+                      className="text-success hover:opacity-80"
+                      onClick={() => addAssunto(a)}
+                      title="Adicionar"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </td>
+                  <td>{a.codigo}</td>
+                  <td className="text-[10px]">{a.descricao}</td>
+                  <td>Não</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
