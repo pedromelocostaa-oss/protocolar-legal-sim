@@ -114,16 +114,14 @@ const SystemLayout = ({ children }: { children: ReactNode }) => {
                 Novo Processo
               </button>
               <button
-                className="block w-full text-left px-3 py-1.5 text-[10px] opacity-50 cursor-not-allowed"
+                className="block w-full text-left px-3 py-1.5 text-[10px] hover:opacity-90"
                 style={{ color: "hsl(220, 15%, 90%)" }}
-                disabled
-              >
-                Consultar Processo
-              </button>
-              <button
-                className="block w-full text-left px-3 py-1.5 text-[10px] opacity-50 cursor-not-allowed"
-                style={{ color: "hsl(220, 15%, 90%)" }}
-                disabled
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "hsl(220, 30%, 38%)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                onClick={() => {
+                  navigate("/meus-processos");
+                  setProcessoMenuOpen(false);
+                }}
               >
                 Meus Processos
               </button>
