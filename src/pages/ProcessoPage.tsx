@@ -8,6 +8,7 @@ import StepCaracteristicas from "@/components/processo/StepCaracteristicas";
 import StepPeticao from "@/components/processo/StepPeticao";
 import StepResumo from "@/components/processo/StepResumo";
 import { useAuth } from "@/contexts/AuthContext";
+import { CheckCircle } from "lucide-react";
 
 const steps = [
   "Dados Iniciais",
@@ -37,18 +38,22 @@ const ProcessoContent = () => {
   return (
     <>
       <div className="breadcrumb">
-        <a href="#" onClick={() => navigate("/home")}>Início</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); navigate("/home"); }}>Início</a>
         <span>&gt;</span>
         <span>Processo</span>
         <span>&gt;</span>
         <span>Novo Processo</span>
         <span>&gt;</span>
-        <span className="font-semibold text-foreground">{steps[currentStep]}</span>
+        <span className="font-bold text-foreground">{steps[currentStep]}</span>
       </div>
 
-      <div className="p-4">
-        <div className="panel-section mb-3">
-          <div className="panel-header">Novo Processo — Cadastro</div>
+      <div className="p-2">
+        {/* Step indicator bar */}
+        <div className="panel-section mb-2">
+          <div className="panel-header flex items-center gap-1">
+            <CheckCircle size={11} />
+            Novo Processo — Cadastro
+          </div>
           <div className="tab-bar">
             {steps.map((step, i) => (
               <button
@@ -56,7 +61,18 @@ const ProcessoContent = () => {
                 className={`tab-item ${i === currentStep ? "active" : ""}`}
                 onClick={() => setCurrentStep(i)}
               >
-                {i + 1}. {step}
+                <span
+                  className="inline-flex items-center justify-center w-3.5 h-3.5 text-[8px] font-bold mr-0.5 border"
+                  style={{
+                    borderColor: i === currentStep ? "hsl(220, 70%, 30%)" : "hsl(220, 8%, 55%)",
+                    backgroundColor: i < currentStep ? "hsl(220, 70%, 30%)" : "transparent",
+                    color: i < currentStep ? "white" : "inherit",
+                    borderRadius: "1px",
+                  }}
+                >
+                  {i < currentStep ? "✓" : i + 1}
+                </span>
+                {step}
               </button>
             ))}
           </div>
