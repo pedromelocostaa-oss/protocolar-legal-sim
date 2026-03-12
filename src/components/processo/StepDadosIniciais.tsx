@@ -23,52 +23,56 @@ const StepDadosIniciais = () => {
     }
     setDadosIniciais({ materia, jurisdicao, competencia, classeJudicial });
     setIncluded(true);
-    setMsg("Dados iniciais incluídos com sucesso.");
+    setMsg("");
   };
 
   return (
     <div className="panel-section">
       <div className="panel-header">1. Dados Iniciais</div>
       <div className="panel-body">
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="form-label">Matéria *</label>
-            <select className="form-field" value={materia} onChange={(e) => setMateria(e.target.value)}>
-              <option value="">Selecione...</option>
-              {mockMaterias.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
+        <fieldset className="pje-fieldset">
+          <legend className="pje-fieldset-legend">Identificação do Processo</legend>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div>
+              <label className="form-label required">Matéria</label>
+              <select className="form-field" value={materia} onChange={(e) => setMateria(e.target.value)}>
+                <option value="">-- Selecione --</option>
+                {mockMaterias.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label required">Jurisdição / Comarca</label>
+              <select className="form-field" value={jurisdicao} onChange={(e) => setJurisdicao(e.target.value)}>
+                <option value="">-- Selecione --</option>
+                {mockJurisdicoes.map((j) => <option key={j} value={j}>{j}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label required">Competência</label>
+              <select className="form-field" value={competencia} onChange={(e) => setCompetencia(e.target.value)}>
+                <option value="">-- Selecione --</option>
+                {mockCompetencias.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label required">Classe Judicial</label>
+              <select className="form-field" value={classeJudicial} onChange={(e) => setClasseJudicial(e.target.value)}>
+                <option value="">-- Selecione --</option>
+                {mockClassesJudiciais.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="form-label">Jurisdição / Comarca *</label>
-            <select className="form-field" value={jurisdicao} onChange={(e) => setJurisdicao(e.target.value)}>
-              <option value="">Selecione...</option>
-              {mockJurisdicoes.map((j) => <option key={j} value={j}>{j}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="form-label">Competência *</label>
-            <select className="form-field" value={competencia} onChange={(e) => setCompetencia(e.target.value)}>
-              <option value="">Selecione...</option>
-              {mockCompetencias.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="form-label">Classe Judicial *</label>
-            <select className="form-field" value={classeJudicial} onChange={(e) => setClasseJudicial(e.target.value)}>
-              <option value="">Selecione...</option>
-              {mockClassesJudiciais.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-        </div>
+        </fieldset>
 
-        <div className="flex items-center gap-2 mb-3">
+        <div className="flex items-center gap-2 mb-2">
           <button className="btn-primary" onClick={handleIncluir}>Incluir</button>
-          {msg && <span className="text-xs text-success">{msg}</span>}
+          {msg && <span className="text-[10px] text-destructive font-semibold">{msg}</span>}
         </div>
 
         {included && data.dadosIniciais && (
           <>
-            <table className="data-table mb-3">
+            <div className="alert-success mb-2">Dados iniciais incluídos com sucesso.</div>
+            <table className="data-table mb-2">
               <thead>
                 <tr>
                   <th>Matéria</th>
@@ -86,9 +90,11 @@ const StepDadosIniciais = () => {
                 </tr>
               </tbody>
             </table>
-            <button className="btn-primary" onClick={() => setCurrentStep(1)}>
-              Avançar &rarr;
-            </button>
+            <div className="flex justify-end">
+              <button className="btn-primary" onClick={() => setCurrentStep(1)}>
+                Avançar &raquo;
+              </button>
+            </div>
           </>
         )}
       </div>

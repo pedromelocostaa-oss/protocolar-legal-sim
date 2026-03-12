@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Lock, Mail } from "lucide-react";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("ana.souza@universidade.edu.br");
@@ -16,20 +17,42 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm">
-        <div className="panel-section">
-          <div className="panel-header text-center">
-            Sistema Acadêmico de Processo Eletrônico Simulado
+    <div
+      className="min-h-screen flex flex-col items-center justify-center"
+      style={{ backgroundColor: "hsl(220, 14%, 92%)" }}
+    >
+      {/* System identification bar at top */}
+      <div
+        className="fixed top-0 left-0 right-0 h-8 flex items-center justify-center"
+        style={{ backgroundColor: "hsl(222, 47%, 20%)" }}
+      >
+        <span
+          className="text-[11px] font-bold tracking-wider uppercase"
+          style={{ color: "hsl(220, 20%, 95%)" }}
+        >
+          SAPE — Sistema Acadêmico de Processo Eletrônico
+        </span>
+      </div>
+
+      <div className="w-full max-w-[340px] mt-8">
+        {/* Login panel */}
+        <div className="border" style={{ borderColor: "hsl(220, 12%, 78%)" }}>
+          <div
+            className="px-3 py-1.5 text-[11px] font-bold tracking-wide uppercase text-center"
+            style={{
+              backgroundColor: "hsl(222, 40%, 28%)",
+              color: "hsl(0, 0%, 100%)",
+            }}
+          >
+            Acesso ao Sistema
           </div>
-          <div className="panel-body">
-            <p className="text-xs text-muted-foreground text-center mb-4">
-              Ambiente exclusivamente acadêmico para fins de estudo e simulação.
-              Este sistema não possui vínculo com qualquer órgão oficial.
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="bg-card p-4">
+            <form onSubmit={handleSubmit} className="space-y-2.5">
               <div>
-                <label className="form-label">E-mail institucional</label>
+                <label className="form-label">
+                  <Mail size={10} className="inline mr-1" />
+                  E-mail institucional
+                </label>
                 <input
                   type="email"
                   className="form-field"
@@ -40,7 +63,10 @@ const LoginPage = () => {
                 />
               </div>
               <div>
-                <label className="form-label">Senha</label>
+                <label className="form-label">
+                  <Lock size={10} className="inline mr-1" />
+                  Senha
+                </label>
                 <input
                   type="password"
                   className="form-field"
@@ -53,19 +79,39 @@ const LoginPage = () => {
                 Entrar
               </button>
               <div className="text-center">
-                <a href="#" className="text-xs text-accent hover:underline">
+                <a
+                  href="#"
+                  className="text-[10px] hover:underline"
+                  style={{ color: "hsl(220, 55%, 42%)" }}
+                >
                   Esqueci minha senha
                 </a>
               </div>
             </form>
-            <div className="mt-4 pt-3 border-t border-border">
-              <p className="text-[10px] text-muted-foreground text-center">
-                PJE Simulado — Ferramenta acadêmica de simulação de peticionamento eletrônico.
-                Qualquer credencial de demonstração é aceita neste ambiente.
-              </p>
-            </div>
           </div>
         </div>
+
+        {/* Disclaimer */}
+        <div
+          className="mt-3 p-2 border text-center"
+          style={{
+            borderColor: "hsl(220, 12%, 82%)",
+            backgroundColor: "hsl(220, 14%, 96%)",
+          }}
+        >
+          <p className="text-[9px] text-muted-foreground leading-tight">
+            Ambiente exclusivamente acadêmico para fins de estudo e simulação.
+            Este sistema não possui vínculo com qualquer órgão oficial do Poder Judiciário.
+            Qualquer credencial de demonstração é aceita neste ambiente.
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="fixed bottom-0 left-0 right-0 py-1 text-center" style={{ backgroundColor: "hsl(220, 14%, 94%)" }}>
+        <p className="text-[9px] text-muted-foreground">
+          SAPE v1.0.0 — Ferramenta acadêmica de simulação de peticionamento eletrônico
+        </p>
       </div>
     </div>
   );

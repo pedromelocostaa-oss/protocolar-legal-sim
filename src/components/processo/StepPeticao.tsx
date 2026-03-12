@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useProcess, Anexo } from "@/contexts/ProcessContext";
 import { mockTiposDocumento } from "@/data/mockData";
-import { Plus, X, FileText } from "lucide-react";
+import { Plus, X, FileText, Upload, Shield } from "lucide-react";
 
 const StepPeticao = () => {
   const { data, setPeticao, setCurrentStep } = useProcess();
@@ -15,7 +15,6 @@ const StepPeticao = () => {
   const [saved, setSaved] = useState(!!data.peticao);
   const [msg, setMsg] = useState("");
 
-  // Anexo form
   const [showAnexoForm, setShowAnexoForm] = useState(false);
   const [anexoTipo, setAnexoTipo] = useState("Procuração");
   const [anexoDesc, setAnexoDesc] = useState("");
@@ -28,17 +27,17 @@ const StepPeticao = () => {
 
   const handleSalvar = () => {
     if (!conteudo) {
-      setMsg("Insira o conteúdo da petição.");
+      setMsg("error:Insira o conteúdo da petição.");
       return;
     }
     setPeticao({ tipoDocumento, descricao, numero, sigiloso, conteudo, anexos });
     setSaved(true);
-    setMsg("Petição salva com sucesso.");
+    setMsg("success:Petição salva com sucesso.");
   };
 
   const handleAddAnexo = () => {
     if (!anexoDesc || !anexoFile) {
-      setMsg("Preencha descrição e arquivo do anexo.");
+      setMsg("error:Preencha descrição e arquivo do anexo.");
       return;
     }
     const newAnexo: Anexo = {
@@ -57,7 +56,7 @@ const StepPeticao = () => {
     setAnexoFile("");
     setAnexoSig(false);
     setShowAnexoForm(false);
-    setMsg("Anexo adicionado.");
+    setMsg("success:Anexo adicionado com sucesso.");
   };
 
   const removeAnexo = (id: string) => {
@@ -70,79 +69,109 @@ const StepPeticao = () => {
 
   const handleAssinar = () => {
     if (!saved) {
-      setMsg("Salve a petição antes de assinar.");
+      setMsg("error:Salve a petição antes de assinar.");
       return;
     }
     setSigning(true);
+    setMsg("");
     setTimeout(() => {
       setSigning(false);
       setSigned(true);
-      setMsg("Documento(s) assinado(s) digitalmente com sucesso.");
+      setMsg("success:Documento(s) assinado(s) digitalmente com sucesso.");
     }, 2000);
   };
+
+  const msgType = msg.split(":")[0];
+  const msgText = msg.split(":").slice(1).join(":");
 
   return (
     <div className="panel-section">
       <div className="panel-header">5. Petições e Documentos</div>
       <div className="panel-body">
-        {/* Petition form */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div>
-            <label className="form-label">Tipo de Documento</label>
-            <select className="form-field" value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value)}>
-              {mockTiposDocumento.map((t) => <option key={t}>{t}</option>)}
-            </select>
+        {/* Document metadata */}
+        <fieldset className="pje-fieldset">
+          <legend className="pje-fieldset-legend">Documento Principal</legend>
+          <div className="grid grid-cols-4 gap-1.5 mb-1.5">
+            <div>
+              <label className="form-label">Tipo de Documento</label>
+              <select className="form-field" value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value)}>
+                {mockTiposDocumento.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="form-label">Descrição</label>
+              <input className="form-field" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+            </div>
+            <div>
+              <label className="form-label">Número (opcional)</label>
+              <input className="form-field" value={numero} onChange={(e) => setNumero(e.target.value)} />
+            </div>
           </div>
-          <div>
-            <label className="form-label">Descrição</label>
-            <input className="form-field" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
-          </div>
-          <div>
-            <label className="form-label">Número (opcional)</label>
-            <input className="form-field" value={numero} onChange={(e) => setNumero(e.target.value)} />
-          </div>
-        </div>
 
-        <div className="mb-3">
-          <label className="flex items-center gap-2 text-xs">
-            <input type="checkbox" checked={sigiloso} onChange={(e) => setSigiloso(e.target.checked)} />
-            Documento sigiloso
-          </label>
-        </div>
+          <div className="mb-1.5">
+            <label className="pje-checkbox">
+              <input type="checkbox" checked={sigiloso} onChange={(e) => setSigiloso(e.target.checked)} />
+              Documento sigiloso
+            </label>
+          </div>
+        </fieldset>
 
-        <div className="mb-3">
-          <label className="form-label">Conteúdo da Petição</label>
+        {/* Editor */}
+        <fieldset className="pje-fieldset">
+          <legend className="pje-fieldset-legend">Editor de Texto</legend>
+          <div
+            className="mb-1 flex items-center gap-1 px-1 py-0.5 border-b"
+            style={{
+              backgroundColor: "hsl(220, 14%, 94%)",
+              borderColor: "hsl(220, 12%, 80%)",
+            }}
+          >
+            <span className="text-[9px] text-muted-foreground">Barra de ferramentas (simulada)</span>
+          </div>
           <textarea
-            className="form-field min-h-[250px] font-mono text-xs"
+            className="form-field min-h-[220px] font-mono text-[10px] leading-tight"
             value={conteudo}
             onChange={(e) => setConteudo(e.target.value)}
             placeholder="Digite ou cole o conteúdo da petição inicial aqui..."
+            style={{ resize: "vertical" }}
           />
-        </div>
+        </fieldset>
 
-        <div className="flex items-center gap-2 mb-4">
-          <button className="btn-success" onClick={handleSalvar}>Salvar</button>
-          {msg && <span className="text-xs text-success">{msg}</span>}
-        </div>
-
-        {/* Anexos */}
-        <div className="border-t border-border pt-3 mb-3">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-bold">Anexos</h4>
-            {saved && (
-              <button className="btn-primary flex items-center gap-1" onClick={() => setShowAnexoForm(true)}>
-                <Plus size={12} /> Adicionar
-              </button>
-            )}
+        {msg && (
+          <div className={msgType === "success" ? "alert-success mb-1.5" : "alert-error mb-1.5"}>
+            {msgText}
           </div>
+        )}
+
+        <div className="flex items-center gap-2 mb-2">
+          <button className="btn-success" onClick={handleSalvar}>Salvar</button>
+        </div>
+
+        {/* Attachments */}
+        <fieldset className="pje-fieldset">
+          <legend className="pje-fieldset-legend flex items-center gap-1">
+            <Upload size={10} /> Anexos
+          </legend>
 
           {!saved && (
-            <p className="text-[10px] text-muted-foreground">Salve a petição para habilitar adição de anexos.</p>
+            <p className="text-[9px] text-muted-foreground italic">Salve a petição para habilitar adição de anexos.</p>
+          )}
+
+          {saved && !showAnexoForm && (
+            <button className="btn-primary flex items-center gap-0.5 mb-1.5" onClick={() => setShowAnexoForm(true)}>
+              <Plus size={10} /> Adicionar Anexo
+            </button>
           )}
 
           {showAnexoForm && (
-            <div className="border border-border rounded-sm p-3 mb-2 bg-muted">
-              <div className="grid grid-cols-3 gap-2 mb-2">
+            <div
+              className="p-2 mb-1.5 border"
+              style={{
+                backgroundColor: "hsl(220, 14%, 96%)",
+                borderColor: "hsl(220, 12%, 80%)",
+              }}
+            >
+              <div className="grid grid-cols-4 gap-1.5 mb-1.5">
                 <div>
                   <label className="form-label">Tipo</label>
                   <select className="form-field" value={anexoTipo} onChange={(e) => setAnexoTipo(e.target.value)}>
@@ -150,30 +179,30 @@ const StepPeticao = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="form-label">Descrição *</label>
+                  <label className="form-label required">Descrição</label>
                   <input className="form-field" value={anexoDesc} onChange={(e) => setAnexoDesc(e.target.value)} />
                 </div>
                 <div>
                   <label className="form-label">Número</label>
                   <input className="form-field" value={anexoNum} onChange={(e) => setAnexoNum(e.target.value)} />
                 </div>
+                <div>
+                  <label className="form-label required">Arquivo (simulado)</label>
+                  <input
+                    className="form-field"
+                    value={anexoFile}
+                    onChange={(e) => setAnexoFile(e.target.value)}
+                    placeholder="Ex: procuracao.pdf"
+                  />
+                </div>
               </div>
-              <div className="mb-2">
-                <label className="flex items-center gap-2 text-xs">
+              <div className="mb-1.5">
+                <label className="pje-checkbox">
                   <input type="checkbox" checked={anexoSig} onChange={(e) => setAnexoSig(e.target.checked)} />
                   Sigiloso
                 </label>
               </div>
-              <div className="mb-2">
-                <label className="form-label">Arquivo (simulado)</label>
-                <input
-                  className="form-field"
-                  value={anexoFile}
-                  onChange={(e) => setAnexoFile(e.target.value)}
-                  placeholder="Ex: procuracao.pdf"
-                />
-              </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button className="btn-primary" onClick={handleAddAnexo}>Confirmar</button>
                 <button className="btn-secondary" onClick={() => setShowAnexoForm(false)}>Cancelar</button>
               </div>
@@ -183,18 +212,24 @@ const StepPeticao = () => {
           {anexos.length > 0 && (
             <table className="data-table">
               <thead>
-                <tr><th>Tipo</th><th>Descrição</th><th>Arquivo</th><th>Sigiloso</th><th>Ação</th></tr>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Descrição</th>
+                  <th>Arquivo</th>
+                  <th>Sigiloso</th>
+                  <th style={{ width: "70px" }}>Ação</th>
+                </tr>
               </thead>
               <tbody>
                 {anexos.map((a) => (
                   <tr key={a.id}>
                     <td>{a.tipoDocumento}</td>
                     <td>{a.descricao}</td>
-                    <td className="flex items-center gap-1"><FileText size={12} /> {a.nomeArquivo}</td>
+                    <td className="flex items-center gap-0.5"><FileText size={10} /> {a.nomeArquivo}</td>
                     <td>{a.sigiloso ? "Sim" : "Não"}</td>
                     <td>
-                      <button className="btn-secondary flex items-center gap-1" onClick={() => removeAnexo(a.id)}>
-                        <X size={12} /> Remover
+                      <button className="btn-danger flex items-center gap-0.5" onClick={() => removeAnexo(a.id)}>
+                        <X size={10} /> Remover
                       </button>
                     </td>
                   </tr>
@@ -202,28 +237,31 @@ const StepPeticao = () => {
               </tbody>
             </table>
           )}
-        </div>
+        </fieldset>
 
-        {/* Assinar */}
-        <div className="border-t border-border pt-3 mb-3">
+        {/* Sign */}
+        <fieldset className="pje-fieldset">
+          <legend className="pje-fieldset-legend flex items-center gap-1">
+            <Shield size={10} /> Assinatura Digital
+          </legend>
           {signing ? (
-            <div className="text-xs text-accent flex items-center gap-2">
-              <div className="animate-spin h-4 w-4 border-2 border-accent border-t-transparent rounded-full" />
-              Processando assinatura digital...
+            <div className="flex items-center gap-2 text-[10px] text-accent py-1">
+              <div className="animate-spin h-3.5 w-3.5 border-2 border-accent border-t-transparent rounded-full" />
+              Processando assinatura digital... Aguarde.
             </div>
           ) : signed ? (
-            <div className="text-xs text-success font-semibold">Documento(s) assinado(s) digitalmente.</div>
+            <div className="alert-success">Documento(s) assinado(s) digitalmente com sucesso.</div>
           ) : (
             <button className="btn-primary" onClick={handleAssinar}>
               {anexos.length > 0 ? "Assinar documento(s)" : "Assinar sem anexos"}
             </button>
           )}
-        </div>
+        </fieldset>
 
-        <div className="flex gap-2">
-          <button className="btn-secondary" onClick={() => setCurrentStep(3)}>&larr; Voltar</button>
+        <div className="flex justify-between mt-2">
+          <button className="btn-secondary" onClick={() => setCurrentStep(3)}>&laquo; Voltar</button>
           {signed && (
-            <button className="btn-primary" onClick={() => setCurrentStep(5)}>Avançar &rarr;</button>
+            <button className="btn-primary" onClick={() => setCurrentStep(5)}>Avançar &raquo;</button>
           )}
         </div>
       </div>

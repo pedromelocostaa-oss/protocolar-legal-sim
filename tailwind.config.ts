@@ -77,6 +77,9 @@ export default {
         "table-stripe": "hsl(var(--table-stripe))",
         "header-bg": "hsl(var(--header-bg))",
         "header-fg": "hsl(var(--header-fg))",
+        "nav-bg": "hsl(var(--nav-bg))",
+        "nav-fg": "hsl(var(--nav-fg))",
+        "nav-hover": "hsl(var(--nav-hover))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -85,20 +88,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
