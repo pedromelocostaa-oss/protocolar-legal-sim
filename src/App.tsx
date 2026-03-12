@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import ProcessoPage from "./pages/ProcessoPage";
+import MeusProcessosPage from "./pages/MeusProcessosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
