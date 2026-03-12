@@ -23,6 +23,7 @@ const App = () => (
             <Route path="/" element={<LoginPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/processo" element={<ProcessoPage />} />
+            <Route path="/meus-processos" element={<MeusProcessosPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
