@@ -127,7 +127,7 @@ const StepPartes = () => {
                 poloAtivo.map((p) => (
                   <tr key={p.id}>
                     <td><Edit2 size={11} className="text-muted-foreground" /></td>
-                    <td>{p.nome} — CPF: {p.cpfCnpj} ({p.tipoParte})</td>
+                    <td>{p.nome} — {p.tipoPessoa === "Jurídica" ? "CNPJ" : "CPF"}: {p.cpfCnpj} ({p.tipoParte})</td>
                     <td>
                       <button className="text-destructive" onClick={() => removeParte(p.id)}>
                         <X size={12} />
