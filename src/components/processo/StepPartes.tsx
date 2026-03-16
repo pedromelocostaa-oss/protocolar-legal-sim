@@ -17,7 +17,10 @@ const StepPartes = () => {
   const [brasileiro, setBrasileiro] = useState(true);
   const [cpf, setCpf] = useState("");
   const [nome, setNome] = useState("");
+  const [nomeFantasia, setNomeFantasia] = useState("");
   const [nomeSocial, setNomeSocial] = useState(false);
+  const [passaporte, setPassaporte] = useState("");
+  const [nacionalidade, setNacionalidade] = useState("");
 
   // Step 3 fields (complementação - endereço)
   const [cep, setCep] = useState("");
