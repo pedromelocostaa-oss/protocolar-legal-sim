@@ -261,28 +261,54 @@ const StepPartes = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                          <label className="form-label required">CPF</label>
-                          <div className="flex gap-2">
-                            <input className="form-field" value={cpf} onChange={(e) => setCpf(e.target.value)} />
-                            <button className="btn-primary">PESQUISAR</button>
-                            <button className="btn-secondary">LIMPAR</button>
+                      {brasileiro ? (
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label className="form-label required">{docLabel}</label>
+                            <div className="flex gap-2">
+                              <input className="form-field" value={cpf} onChange={(e) => setCpf(e.target.value)} />
+                              <button className="btn-primary">PESQUISAR</button>
+                              <button className="btn-secondary">LIMPAR</button>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <label className="form-label required">Passaporte</label>
+                            <div className="flex gap-2">
+                              <input className="form-field" value={passaporte} onChange={(e) => setPassaporte(e.target.value)} />
+                              <button className="btn-primary">PESQUISAR</button>
+                              <button className="btn-secondary">LIMPAR</button>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="form-label required">Nacionalidade</label>
+                            <input className="form-field" value={nacionalidade} onChange={(e) => setNacionalidade(e.target.value)} />
+                          </div>
+                        </div>
+                      )}
 
                       <div className="mb-3">
-                        <label className="form-label">Nome civil</label>
+                        <label className="form-label">{nomeLabel}</label>
                         <input className="form-field" value={nome} onChange={(e) => setNome(e.target.value)} />
                       </div>
 
-                      <div className="mb-3">
-                        <label className="pje-checkbox">
-                          <input type="checkbox" checked={nomeSocial} onChange={(e) => setNomeSocial(e.target.checked)} />
-                          Nome social?
-                        </label>
-                      </div>
+                      {isJuridica && (
+                        <div className="mb-3">
+                          <label className="form-label">Nome fantasia</label>
+                          <input className="form-field" value={nomeFantasia} onChange={(e) => setNomeFantasia(e.target.value)} />
+                        </div>
+                      )}
+
+                      {!isJuridica && (
+                        <div className="mb-3">
+                          <label className="pje-checkbox">
+                            <input type="checkbox" checked={nomeSocial} onChange={(e) => setNomeSocial(e.target.checked)} />
+                            Nome social?
+                          </label>
+                        </div>
+                      )}
 
                       {msg && <div className="alert-error mb-2">{msg}</div>}
 
