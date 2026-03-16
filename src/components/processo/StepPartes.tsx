@@ -46,7 +46,10 @@ const StepPartes = () => {
     setBrasileiro(true);
     setCpf("");
     setNome("");
+    setNomeFantasia("");
     setNomeSocial(false);
+    setPassaporte("");
+    setNacionalidade("");
     setCep("");
     setEstado("");
     setCidade("");
