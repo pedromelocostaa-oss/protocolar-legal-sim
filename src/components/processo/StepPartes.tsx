@@ -63,9 +63,13 @@ const StepPartes = () => {
     setShowModal(true);
   };
 
+  const isJuridica = tipoPessoa === "Jurídica";
+  const docLabel = isJuridica ? "CNPJ" : "CPF";
+  const nomeLabel = isJuridica ? "Nome empresarial" : "Nome civil";
+
   const handleConfirm = () => {
-    if (!nome || !cpf) {
-      setMsg("Nome e CPF são obrigatórios.");
+    if (!nome || (!brasileiro && !passaporte) || (brasileiro && !cpf)) {
+      setMsg(`${nomeLabel} e ${brasileiro ? docLabel : "Passaporte"} são obrigatórios.`);
       return;
     }
     setModalStep(2);
