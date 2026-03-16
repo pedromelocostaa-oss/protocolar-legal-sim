@@ -82,7 +82,7 @@ const StepPartes = () => {
       polo: modalPolo,
       tipoParte,
       nome,
-      cpfCnpj: cpf,
+      cpfCnpj: brasileiro ? cpf : passaporte,
       tipoPessoa: tipoPessoa as "Física" | "Jurídica",
       cep,
       endereco: logradouro,
