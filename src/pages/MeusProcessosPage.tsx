@@ -136,20 +136,19 @@ export default function MeusProcessosPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Número do Processo</th>
-                      <th>Classe</th>
-                      <th>Assunto</th>
+                      <th>Nº Processo</th>
+                      <th>Classe Processual</th>
                       <th>Vara</th>
-                      <th>Data Protocolo</th>
                       <th>Situação</th>
-                      <th>Nota</th>
+                      <th>Valor da Causa</th>
+                      <th>Data Distribuição</th>
                       <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginated.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                        <td colSpan={7} className="text-center py-8 text-muted-foreground">
                           {processos.length === 0
                             ? 'Nenhum processo protocolado. Clique em "Nova Petição" para começar.'
                             : 'Nenhum resultado encontrado.'}
@@ -166,27 +165,26 @@ export default function MeusProcessosPage() {
                         >
                           <td className="font-mono text-[11px] font-semibold">{p.numero_processo}</td>
                           <td>{p.classe_processual}</td>
-                          <td className="max-w-[180px]">
-                            <div className="truncate">{p.assunto}</div>
-                          </td>
                           <td>{p.vara}</td>
-                          <td>{formatDate(p.created_at)}</td>
                           <td><span className={st.cls}>{st.label}</span></td>
-                          <td className="text-center font-bold">{p.nota != null ? p.nota.toFixed(1) : '—'}</td>
+                          <td>R$ {(p.valor_causa ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                          <td>{formatDate(p.created_at)}</td>
                           <td onClick={e => e.stopPropagation()}>
-                            <div className="flex gap-1">
+                            <div className="flex gap-2 items-center">
                               <button
-                                className="btn-primary text-[10px] py-0.5 px-2"
+                                title="Ver autos"
+                                className="text-[16px] hover:opacity-70 cursor-pointer"
                                 onClick={() => navigate(`/processo/${p.id}`)}
                               >
-                                Detalhes
+                                🔍
                               </button>
                               {p.status !== 'encerrado' && (
                                 <button
-                                  className="btn-secondary text-[10px] py-0.5 px-2"
+                                  title="Peticionar incidentalmente"
+                                  className="text-[16px] hover:opacity-70 cursor-pointer"
                                   onClick={() => navigate(`/peticao-incidental?processo=${p.id}`)}
                                 >
-                                  Peticionar
+                                  📄
                                 </button>
                               )}
                             </div>
@@ -204,7 +202,7 @@ export default function MeusProcessosPage() {
                     {((page - 1) * PER_PAGE) + 1}–{Math.min(page * PER_PAGE, filtered.length)} de {filtered.length}
                   </span>
                   <div className="flex gap-1">
-                    <button className="btn-secondary px-2 py-0.5 text-[10px]" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Ant.</button>
+                    <button className="btn-secondary px-2 py-0.5 text-[10px]" disabled={page === 1} onClick={() => setPage(prev => prev - 1)}>← Ant.</button>
                     {Array.from({ length: totalPages }, (_, i) => (
                       <button
                         key={i + 1}
@@ -214,7 +212,7 @@ export default function MeusProcessosPage() {
                         {i + 1}
                       </button>
                     ))}
-                    <button className="btn-secondary px-2 py-0.5 text-[10px]" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Próx. →</button>
+                    <button className="btn-secondary px-2 py-0.5 text-[10px]" disabled={page === totalPages} onClick={() => setPage(prev => prev + 1)}>Próx. →</button>
                   </div>
                 </div>
               )}
