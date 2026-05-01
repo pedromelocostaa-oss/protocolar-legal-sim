@@ -40,30 +40,37 @@ export default function LoginPage() {
       <header style={{ background: 'hsl(210, 100%, 20%)' }} className="text-white">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3">
-            <div className="text-[22px]">⚖</div>
+            <div className="flex items-center justify-center w-8 h-8 bg-white/10">
+              <svg width="22" height="26" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 1L1 5v8c0 6.5 4.3 11.8 10 13.5C16.7 24.8 21 19.5 21 13V5L11 1z" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.2"/>
+                <path d="M11 3.5L3 7v6c0 5 3.3 9.2 8 10.8C15.7 22.2 19 18 19 13V7L11 3.5z" fill="white" fillOpacity="0.08"/>
+                <text x="11" y="15.5" textAnchor="middle" fill="white" fontSize="7.5" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">JF</text>
+                <line x1="6" y1="17.5" x2="16" y2="17.5" stroke="white" strokeWidth="0.8" strokeOpacity="0.5"/>
+              </svg>
+            </div>
             <div>
-              <div className="text-[14px] font-bold">e-Proc — Simulador Educacional</div>
-              <div className="text-[10px] opacity-70">Faculdade Milton Campos · Grupo Anima Educação</div>
+              <div className="text-[14px] font-bold">e-Proc</div>
+              <div className="text-[10px] opacity-70">Peticionamento Eletrônico — 1º Grau</div>
             </div>
           </div>
-          <div className="text-[11px] opacity-70 hidden md:block">
-            Justiça Federal · TRF 1ª Região · Simulador
+          <div className="text-[11px] opacity-80 hidden md:block">
+            Seção Judiciária de Minas Gerais
           </div>
         </div>
         <div
           className="flex items-center gap-4 px-4 py-1 text-[11px]"
           style={{ background: 'hsl(213, 100%, 28%)' }}
         >
-          <span className="font-bold">Entrar</span>
-          <span className="opacity-50 cursor-not-allowed">Formas de acesso</span>
+          <span className="font-bold cursor-pointer hover:underline">Entrar</span>
+          <span className="cursor-pointer hover:underline">Formas de acesso</span>
           <span
-            className="cursor-pointer hover:underline opacity-80"
+            className="cursor-pointer hover:underline"
             onClick={() => window.location.href = '/consulta-publica'}
           >
             Consulta processual
           </span>
-          <span className="opacity-50 cursor-not-allowed">Manuais</span>
-          <span className="opacity-50 cursor-not-allowed">Fale conosco</span>
+          <span className="cursor-pointer hover:underline">Manuais</span>
+          <span className="cursor-pointer hover:underline">Fale conosco</span>
         </div>
       </header>
 
@@ -100,6 +107,21 @@ export default function LoginPage() {
                 required
               />
             </div>
+
+            <div>
+              <label className="form-label">Tipo de Acesso</label>
+              <div className="space-y-1.5 mt-1">
+                <label className="pje-radio">
+                  <input type="radio" name="tipoAcesso" defaultChecked />
+                  <span>CPF e Senha</span>
+                </label>
+                <label className="pje-radio opacity-50 cursor-not-allowed">
+                  <input type="radio" name="tipoAcesso" disabled />
+                  <span>Certificado Digital <span className="text-[10px] text-muted-foreground">(não disponível neste simulador)</span></span>
+                </label>
+              </div>
+            </div>
+
             <div>
               <label className="form-label required">Senha</label>
               <input
@@ -122,6 +144,19 @@ export default function LoginPage() {
             >
               {loading ? 'AGUARDE...' : 'ACESSAR'}
             </button>
+
+            <div className="flex justify-between pt-1">
+              <button type="button" className="text-[11px] hover:underline" style={{ color: 'hsl(210,100%,20%)' }}>
+                Esqueci minha senha
+              </button>
+              <button type="button" className="text-[11px] hover:underline" style={{ color: 'hsl(210,100%,20%)' }}>
+                Primeiro acesso / Cadastro
+              </button>
+            </div>
+
+            <div className="text-center pt-1 border-t border-border">
+              <span className="text-[10px] text-muted-foreground">Versão 2.8.1 — Simulador Educacional</span>
+            </div>
           </form>
         </div>
 
