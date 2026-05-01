@@ -142,11 +142,13 @@ export default function ProcessoDetalhesPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 border-t border-border pt-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-3 border-t border-border pt-3">
             <InfoCell label="Vara" value={processo.vara} />
             <InfoCell label="Juiz(a) Simulado(a)" value={juiz} />
             <InfoCell label="Valor da Causa" value={`R$ ${(processo.valor_causa ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} />
             <InfoCell label="Distribuído em" value={formatDateShort(processo.created_at)} />
+            <InfoCell label="Segredo de Justiça" value="Não" />
+            <InfoCell label="Prioridade" value="Sem Prioridade" />
           </div>
         </div>
 
@@ -175,14 +177,19 @@ export default function ProcessoDetalhesPage() {
                 <div className="p-6 text-center text-muted-foreground text-[12px]">Nenhuma movimentação registrada.</div>
               )}
               <div className="divide-y divide-border">
-                {movimentacoes.map(m => (
+                {movimentacoes.map((m, idx) => (
                   <div key={m.id} className="p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ background: 'hsl(210,100%,20%)' }} />
                       <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] font-bold">{movTipoLabel(m.tipo)}</span>
-                          <span className="text-[11px] text-muted-foreground">{formatDate(m.created_at)}</span>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[12px] font-bold">
+                            Evento {movimentacoes.length - idx} — {movTipoLabel(m.tipo)}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[11px] text-muted-foreground">{formatDate(m.created_at)}</span>
+                            <span title="Visualizar documento" className="text-[14px] cursor-default opacity-60 hover:opacity-100" aria-label="Visualizar documento">🔍</span>
+                          </div>
                         </div>
                         <div className="text-[12px] mt-1 whitespace-pre-line">{m.descricao}</div>
                       </div>
