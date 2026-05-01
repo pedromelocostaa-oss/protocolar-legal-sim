@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
-import {
-  FileText, Bell, FolderOpen, PlusCircle, CheckCircle,
-  Clock, AlertCircle, ArrowRight
-} from 'lucide-react';
+import { PlusCircle, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
@@ -62,11 +59,22 @@ export default function DashboardAlunoPage() {
     });
   }, [user]);
 
-  const processosAtivos = processos.filter(p => p.status !== 'encerrado');
-  const tarefasPendentes = tarefas.filter(t => {
-    const hasProcesso = processos.some(p => p.tarefa_id === t.id);
-    return !hasProcesso;
+  const tarefasPendentes = tarefas.filter(t => !processos.some(p => p.tarefa_id === t.id));
+
+  // Counters for CITAÇÕES/INTIMAÇÕES section
+  const now = new Date();
+  const intimacoesComPrazo = intimacoes.filter(i =>
+    i.prazo_resposta && new Date(i.prazo_resposta) >= now
+  );
+  const intimacoesUrgentes = intimacoes.filter(i => {
+    if (!i.prazo_resposta) return false;
+    const prazo = new Date(i.prazo_resposta);
+    const diffDays = (prazo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays >= 0 && diffDays <= 5;
   });
+  const intimacoesLidasComPrazo = intimacoes.filter(i =>
+    i.lida && i.prazo_resposta && new Date(i.prazo_resposta) >= now
+  );
 
   return (
     <EprocLayout intimacoesCount={intimacoesNaoLidas}>
@@ -78,232 +86,231 @@ export default function DashboardAlunoPage() {
           <span>Painel do Advogado</span>
         </div>
 
-        {/* Welcome */}
-        <div className="bg-white border border-border p-4 mb-4">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="text-[14px] font-bold" style={{ color: 'hsl(210, 100%, 20%)' }}>
-                Bem-vindo(a), {user?.nome_completo}
-              </div>
-              <div className="text-[12px] text-muted-foreground mt-0.5">
-                <span className="font-semibold">Advogado(a) Simulado(a)</span> ·
-                <span className="ml-1">{user?.oab_simulado}</span> ·
-                <span className="ml-1">Matrícula: {user?.matricula}</span>
-              </div>
-              <div className="text-[11px] text-muted-foreground mt-1">
-                Faculdade Milton Campos · Grupo Anima Educação
-              </div>
-            </div>
+        {/* Welcome bar */}
+        <div className="bg-white border border-border p-3 mb-4 flex items-center justify-between">
+          <div>
+            <span className="text-[13px] font-bold" style={{ color: 'hsl(210, 100%, 20%)' }}>
+              {user?.nome_completo}
+            </span>
+            <span className="text-[11px] text-muted-foreground ml-2">
+              {user?.oab_simulado} · Matrícula: {user?.matricula}
+            </span>
+          </div>
+          <button
+            className="btn-primary flex items-center gap-1.5 text-[11px]"
+            onClick={() => navigate('/peticao-inicial')}
+          >
+            <PlusCircle size={13} />
+            Nova Petição
+          </button>
+        </div>
+
+        {/* SEÇÃO 1 — CITAÇÕES/INTIMAÇÕES */}
+        <div className="eproc-painel-section">
+          <div className="eproc-painel-section-header">CITAÇÕES/INTIMAÇÕES</div>
+          <div className="eproc-painel-row">
+            <span className="eproc-painel-row-label">Processos pendentes de citação/intimação</span>
             <button
-              className="btn-primary flex items-center gap-2"
-              onClick={() => navigate('/peticao-inicial')}
+              className="eproc-painel-counter"
+              onClick={() => navigate('/intimacoes')}
             >
-              <PlusCircle size={14} />
-              Nova Petição
+              {intimacoesNaoLidas}
+            </button>
+          </div>
+          <div className="eproc-painel-row">
+            <span className="eproc-painel-row-label">Processos com prazo em aberto</span>
+            <button
+              className="eproc-painel-counter"
+              onClick={() => navigate('/intimacoes')}
+            >
+              {intimacoesComPrazo.length}
+            </button>
+          </div>
+          <div className="eproc-painel-row">
+            <span className="eproc-painel-row-label">Processos com prazo em aberto — urgente</span>
+            <button
+              className="eproc-painel-counter-urgent"
+              onClick={() => navigate('/intimacoes')}
+            >
+              {intimacoesUrgentes.length}
+            </button>
+          </div>
+          <div className="eproc-painel-row">
+            <span className="eproc-painel-row-label">Visualizados com prazo em aberto</span>
+            <button
+              className="eproc-painel-counter"
+              onClick={() => navigate('/intimacoes')}
+            >
+              {intimacoesLidasComPrazo.length}
             </button>
           </div>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-          <SummaryCard
-            icon={<FolderOpen size={20} />}
-            label="Processos em Andamento"
-            value={processosAtivos.length}
-            color="blue"
-            onClick={() => navigate('/meus-processos')}
-          />
-          <SummaryCard
-            icon={<Bell size={20} />}
-            label="Intimações Não Lidas"
-            value={intimacoesNaoLidas}
-            color={intimacoesNaoLidas > 0 ? 'red' : 'green'}
-            onClick={() => navigate('/intimacoes')}
-          />
-          <SummaryCard
-            icon={<Clock size={20} />}
-            label="Tarefas Pendentes"
-            value={tarefasPendentes.length}
-            color={tarefasPendentes.length > 0 ? 'orange' : 'green'}
-            onClick={() => navigate('/meus-processos')}
-          />
+        {/* SEÇÃO 2 — RELAÇÃO DE PROCESSOS */}
+        <div className="eproc-painel-section">
+          <div className="eproc-painel-section-header">RELAÇÃO DE PROCESSOS</div>
+          <div className="px-3 py-2 border-b border-border flex gap-2">
+            <button
+              className="btn-primary text-[11px] py-0.5 px-3"
+              onClick={() => navigate('/peticao-inicial')}
+            >
+              Petição Inicial
+            </button>
+            <button
+              className="btn-secondary text-[11px] py-0.5 px-3"
+              onClick={() => navigate('/meus-processos')}
+            >
+              Últimas Movimentações
+            </button>
+            <button
+              className="btn-secondary text-[11px] py-0.5 px-3"
+              onClick={() => navigate('/meus-processos')}
+            >
+              Relação de Processos
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Nº Processo</th>
+                  <th>Classe</th>
+                  <th>Vara</th>
+                  <th>Situação</th>
+                  <th>Último Evento</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {processos.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-muted-foreground">
+                      Nenhum processo protocolado. Clique em "Petição Inicial" para começar.
+                    </td>
+                  </tr>
+                )}
+                {processos.slice(0, 8).map(p => {
+                  const st = statusLabel(p.status);
+                  return (
+                    <tr
+                      key={p.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/processo/${p.id}`)}
+                    >
+                      <td className="font-mono text-[11px] font-semibold">{p.numero_processo}</td>
+                      <td>{p.classe_processual}</td>
+                      <td>{p.vara}</td>
+                      <td><span className={st.cls}>{st.label}</span></td>
+                      <td className="text-muted-foreground">{p.status === 'em_andamento' ? 'Distribuição' : 'Movimentação'}</td>
+                      <td>{formatDate(p.updated_at)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {processos.length > 8 && (
+            <div className="px-3 py-2 border-t border-border text-[11px] text-center">
+              <button
+                className="hover:underline"
+                style={{ color: 'hsl(210,100%,20%)' }}
+                onClick={() => navigate('/meus-processos')}
+              >
+                Ver todos os {processos.length} processos →
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Tarefas pendentes */}
-          <div className="bg-white border border-border">
-            <div className="panel-header flex items-center justify-between">
-              <span>TAREFAS DO PROFESSOR</span>
+        {/* SEÇÃO 3 — TAREFAS DO PROFESSOR */}
+        <div className="eproc-painel-section">
+          <div className="eproc-painel-section-header">TAREFAS DO PROFESSOR</div>
+          {tarefas.length === 0 && (
+            <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">
+              Nenhuma tarefa ativa no momento.
             </div>
-            <div className="divide-y divide-border">
-              {tarefas.length === 0 && (
-                <div className="p-4 text-[12px] text-muted-foreground text-center">
-                  Nenhuma tarefa ativa no momento.
-                </div>
-              )}
-              {tarefas.map(t => {
-                const hasProcesso = processos.some(p => p.tarefa_id === t.id);
-                const prazoDate = t.prazo ? new Date(t.prazo) : null;
-                const vencido = prazoDate && prazoDate < new Date();
-                return (
-                  <div key={t.id} className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-[13px] font-semibold">{t.titulo}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">
-                          Prazo: {t.prazo ? formatDate(t.prazo) : 'Sem prazo'}
-                          {vencido && <span className="ml-2 text-red-500 font-bold">VENCIDO</span>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
+          )}
+          {tarefas.length > 0 && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Tarefa</th>
+                  <th>Prazo</th>
+                  <th>Situação</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tarefas.map(t => {
+                  const hasProcesso = processos.some(p => p.tarefa_id === t.id);
+                  const prazoDate = t.prazo ? new Date(t.prazo) : null;
+                  const vencido = prazoDate && prazoDate < now;
+                  return (
+                    <tr key={t.id}>
+                      <td className="font-semibold">{t.titulo}</td>
+                      <td>
+                        {t.prazo ? formatDate(t.prazo) : '—'}
+                        {vencido && <span className="ml-2 text-red-600 font-bold text-[10px]">VENCIDO</span>}
+                      </td>
+                      <td>
                         {hasProcesso
                           ? <span className="badge-success">Protocolado</span>
                           : <span className="badge-warning">Pendente</span>}
+                      </td>
+                      <td>
                         {!hasProcesso && (
                           <button
-                            className="btn-primary text-[11px] px-2 py-1 flex items-center gap-1"
+                            className="btn-primary text-[10px] py-0.5 px-2 flex items-center gap-1"
                             onClick={() => navigate(`/peticao-inicial?tarefa=${t.id}`)}
                           >
                             <ArrowRight size={11} /> Peticionar
                           </button>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-          {/* Últimas movimentações */}
-          <div className="bg-white border border-border">
-            <div className="panel-header">ÚLTIMAS MOVIMENTAÇÕES</div>
-            <div className="divide-y divide-border">
-              {processos.length === 0 && (
-                <div className="p-4 text-[12px] text-muted-foreground text-center">
-                  Nenhum processo protocolado ainda.
-                </div>
-              )}
-              {processos.slice(0, 5).map(p => {
-                const st = statusLabel(p.status);
-                return (
-                  <div
-                    key={p.id}
-                    className="p-3 cursor-pointer hover:bg-muted"
-                    onClick={() => navigate(`/processo/${p.id}`)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-[12px] font-semibold font-mono">{p.numero_processo}</div>
-                        <div className="text-[11px] text-muted-foreground">{p.classe_processual}</div>
-                        <div className="text-[11px] text-muted-foreground">{p.vara}</div>
-                      </div>
-                      <div className="text-right">
-                        <span className={st.cls}>{st.label}</span>
-                        {p.nota != null && (
-                          <div className="text-[11px] mt-1 font-bold" style={{ color: 'hsl(210,100%,20%)' }}>
-                            Nota: {p.nota.toFixed(1)}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          {formatDate(p.updated_at)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-              {processos.length > 0 && (
-                <div className="p-2 text-center">
-                  <button
-                    className="text-[11px] hover:underline"
-                    style={{ color: 'hsl(210,100%,20%)' }}
-                    onClick={() => navigate('/meus-processos')}
-                  >
-                    Ver todos os processos →
-                  </button>
-                </div>
-              )}
-            </div>
+        {/* INTIMAÇÕES RECENTES */}
+        <div className="eproc-painel-section">
+          <div className="eproc-painel-section-header flex items-center justify-between">
+            <span>INTIMAÇÕES RECENTES</span>
+            <button className="text-[10px] text-white underline opacity-80" onClick={() => navigate('/intimacoes')}>
+              Ver todas
+            </button>
           </div>
-
-          {/* Intimações recentes */}
-          <div className="bg-white border border-border lg:col-span-2">
-            <div className="panel-header flex items-center justify-between">
-              <span>INTIMAÇÕES RECENTES</span>
-              <button
-                className="text-[10px] text-white underline"
-                onClick={() => navigate('/intimacoes')}
-              >
-                Ver todas
-              </button>
+          {intimacoes.length === 0 && (
+            <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">
+              Nenhuma intimação recebida.
             </div>
-            <div className="divide-y divide-border">
-              {intimacoes.length === 0 && (
-                <div className="p-4 text-[12px] text-muted-foreground text-center">
-                  Nenhuma intimação recebida.
+          )}
+          {intimacoes.slice(0, 3).map(i => (
+            <div
+              key={i.id}
+              className={`eproc-painel-row cursor-pointer hover:bg-muted flex items-start gap-3 ${!i.lida ? 'bg-blue-50' : ''}`}
+              onClick={() => navigate('/intimacoes')}
+            >
+              {!i.lida
+                ? <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                : <CheckCircle size={14} className="text-green-600 mt-0.5 shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] truncate">{i.texto.split('\n')[0]}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {formatDate(i.created_at)}
+                  {i.prazo_resposta && (
+                    <span className="ml-2 text-orange-600">Prazo: {formatDate(i.prazo_resposta)}</span>
+                  )}
                 </div>
-              )}
-              {intimacoes.slice(0, 3).map(i => (
-                <div
-                  key={i.id}
-                  className={`p-3 cursor-pointer hover:bg-muted flex items-start gap-3 ${!i.lida ? 'bg-blue-50' : ''}`}
-                  onClick={() => navigate('/intimacoes')}
-                >
-                  {!i.lida
-                    ? <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
-                    : <CheckCircle size={16} className="text-green-600 mt-0.5 shrink-0" />}
-                  <div className="flex-1">
-                    <div className="text-[12px] line-clamp-2">{i.texto.split('\n')[0]}</div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatDate(i.created_at)} · Processo: {i.processo_id.includes('demo') ? '1000042-33.2025.4.01.3800' : i.processo_id}
-                    </div>
-                    {i.prazo_resposta && (
-                      <div className="text-[11px] text-orange-600">
-                        Prazo: {formatDate(i.prazo_resposta)}
-                      </div>
-                    )}
-                  </div>
-                  {!i.lida && <span className="badge-danger">NÃO LIDA</span>}
-                </div>
-              ))}
+              </div>
+              {!i.lida && <span className="badge-danger shrink-0">NÃO LIDA</span>}
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </EprocLayout>
-  );
-}
-
-function SummaryCard({
-  icon, label, value, color, onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-  color: 'blue' | 'red' | 'green' | 'orange';
-  onClick: () => void;
-}) {
-  const colors = {
-    blue: 'hsl(210,100%,20%)',
-    red: 'hsl(0,70%,45%)',
-    green: 'hsl(120,40%,36%)',
-    orange: 'hsl(40,85%,45%)',
-  };
-  return (
-    <div
-      className="bg-white border border-border p-4 cursor-pointer hover:shadow-md transition-shadow"
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-3">
-        <div className="text-white rounded-sm p-2" style={{ background: colors[color] }}>
-          {icon}
-        </div>
-        <div>
-          <div className="text-[22px] font-bold" style={{ color: colors[color] }}>{value}</div>
-          <div className="text-[11px] text-muted-foreground">{label}</div>
-        </div>
-      </div>
-    </div>
   );
 }
