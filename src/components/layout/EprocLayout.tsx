@@ -24,7 +24,7 @@ export default function EprocLayout({ children, showSidebar = true, intimacoesCo
         </main>
       </div>
       <footer className="edu-footer">
-        Simulador Educacional — Não possui vínculo com a Justiça Federal ou TRF1. Desenvolvido para fins acadêmicos. · Faculdade Milton Campos / Grupo Anima Educação
+        Simulador Educacional — Não possui vínculo com a Justiça Federal ou TRF1 · Desenvolvido para fins acadêmicos · Faculdade Milton Campos / Grupo Anima Educação
       </footer>
     </div>
   );
