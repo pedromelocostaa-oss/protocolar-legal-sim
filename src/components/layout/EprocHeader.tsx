@@ -52,16 +52,24 @@ export default function EprocHeader({ onToggleSidebar, intimacoesNaoLidas = 0 }:
             <Menu size={18} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center bg-white/20 font-bold text-[14px] rounded">⚖</div>
+            <div className="w-8 h-8 flex items-center justify-center bg-white/10">
+              <svg width="22" height="26" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 1L1 5v8c0 6.5 4.3 11.8 10 13.5C16.7 24.8 21 19.5 21 13V5L11 1z" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.2"/>
+                <path d="M11 3.5L3 7v6c0 5 3.3 9.2 8 10.8C15.7 22.2 19 18 19 13V7L11 3.5z" fill="white" fillOpacity="0.08"/>
+                <text x="11" y="15.5" textAnchor="middle" fill="white" fontSize="7.5" fontWeight="bold" fontFamily="Arial" letterSpacing="0.5">JF</text>
+                <line x1="6" y1="17.5" x2="16" y2="17.5" stroke="white" strokeWidth="0.8" strokeOpacity="0.5"/>
+              </svg>
+            </div>
             <div>
-              <div className="text-[13px] font-bold leading-tight">e-Proc — Simulador Educacional</div>
-              <div className="text-[10px] opacity-70">Faculdade Milton Campos · Grupo Anima Educação</div>
+              <div className="text-[14px] font-bold leading-tight">e-Proc</div>
+              <div className="text-[10px] opacity-70">Peticionamento Eletrônico — 1º Grau</div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="text-[10px] opacity-60 hidden md:block">{dateStr}</span>
+          <span className="text-[11px] opacity-80 hidden md:block">Seção Judiciária de Minas Gerais</span>
+          <span className="text-[10px] opacity-50 hidden lg:block">{dateStr}</span>
 
           {/* Notifications bell */}
           {user?.perfil === 'aluno' && (
@@ -127,11 +135,17 @@ export default function EprocHeader({ onToggleSidebar, intimacoesNaoLidas = 0 }:
 
       {/* Secondary navigation bar */}
       <div className="eproc-header-sub">
-        <span className="opacity-50">|</span>
-        <span className="opacity-60">Justiça Federal · TRF 1ª Região · Simulador Educacional</span>
-        <span className="opacity-50 ml-auto text-[10px]">
-          Simulador Educacional — Não possui vínculo com a Justiça Federal ou TRF1
-        </span>
+        <button className="eproc-subheader-link font-bold" onClick={() => {}}>Início</button>
+        <span className="opacity-40">|</span>
+        <button className="eproc-subheader-link" onClick={() => {}}>Petição Inicial</button>
+        <span className="opacity-40">|</span>
+        <button className="eproc-subheader-link" onClick={() => {}}>Consulta Processual</button>
+        <span className="opacity-40">|</span>
+        <button className="eproc-subheader-link" onClick={() => {}}>Intimações</button>
+        <span className="opacity-40">|</span>
+        <button className="eproc-subheader-link" onClick={() => {}}>Manuais</button>
+        <span className="opacity-40">|</span>
+        <button className="eproc-subheader-link" onClick={() => {}}>Fale Conosco</button>
       </div>
     </div>
   );
