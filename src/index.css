@@ -430,7 +430,51 @@
 
   /* ===== EDUCATIONAL FOOTER ===== */
   .edu-footer {
-    @apply text-center py-2 text-[10px] text-muted-foreground border-t border-border;
-    background-color: hsl(213 25% 95%);
+    @apply text-center py-1.5 text-[9px] border-t border-border;
+    background-color: transparent;
+    color: hsl(210 10% 60%);
+    opacity: 0.4;
+  }
+
+  /* ===== e-PROC PAINEL SECTIONS ===== */
+  .eproc-painel-section {
+    @apply bg-white border border-border mb-4;
+    border-radius: 0;
+  }
+  .eproc-painel-section-header {
+    @apply px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white;
+    background-color: hsl(var(--panel-header));
+    letter-spacing: 0.04em;
+  }
+  .eproc-painel-counter {
+    @apply text-[18px] font-bold cursor-pointer;
+    color: hsl(var(--accent));
+  }
+  .eproc-painel-counter:hover {
+    text-decoration: underline;
+  }
+  .eproc-painel-counter-urgent {
+    @apply text-[18px] font-bold cursor-pointer;
+    color: hsl(var(--destructive));
+  }
+  .eproc-painel-counter-urgent:hover {
+    text-decoration: underline;
+  }
+  .eproc-painel-row {
+    @apply flex items-center justify-between px-3 py-2 border-b border-border text-[12px];
+  }
+  .eproc-painel-row:last-child {
+    border-bottom: none;
+  }
+  .eproc-painel-row-label {
+    @apply text-[12px];
+    color: hsl(var(--foreground));
+  }
+  .eproc-subheader-link {
+    @apply text-[11px] cursor-pointer hover:underline;
+    color: hsl(var(--eproc-header-fg));
+    background: transparent;
+    border: none;
+    padding: 0;
   }
 }
