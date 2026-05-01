@@ -1,8 +1,63 @@
-# Welcome to your Lovable project
+# e-Proc — Simulador Educacional
 
-## Project info
+**Faculdade Milton Campos / Grupo Anima Educação**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+> Simulador do sistema e-Proc (TRF1) para uso acadêmico. Permite que professores de Direito atribuam tarefas práticas de peticionamento eletrônico e que os alunos as realizem em ambiente controlado.
+
+## ⚠️ Aviso Legal
+
+Este sistema **não possui vínculo** com a Justiça Federal, TRF1 ou qualquer órgão oficial do Poder Judiciário. Os processos, partes e documentos são **totalmente fictícios**, criados exclusivamente para fins pedagógicos.
+
+---
+
+## Credenciais de Demonstração (Modo Demo)
+
+| Perfil | CPF | Senha |
+|--------|-----|-------|
+| Aluno | `121.572.976-69` | `Milton@2025` |
+| Professor | `000.000.000-01` | `Milton@2025` |
+
+---
+
+## Setup Rápido
+
+```bash
+npm install
+cp .env.example .env.local   # configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY
+npm run dev
+```
+
+**Sem Supabase?** O sistema roda em Modo Demo com dados locais (localStorage). Ideal para demonstração da interface.
+
+## Com Supabase (Produção)
+
+1. Crie projeto em https://supabase.com
+2. Execute `supabase/migrations/001_initial_schema.sql` no SQL Editor
+3. Configure variáveis no `.env.local`
+4. Crie usuários via Supabase Auth e execute `supabase/seed.sql`
+
+## Funcionalidades
+
+### Alunos
+- Login com CPF + troca obrigatória de senha no 1º acesso
+- Dashboard com tarefas, processos e intimações
+- **Petição Inicial** — wizard 5 etapas com geração de número CNJ
+- Distribuição automática a vara fictícia
+- Acompanhamento de processos com timeline
+- Petição Incidental (contestação, recurso, etc.)
+- Caixa de intimações com ciência registrada
+
+### Professores
+- Criação de tarefas com enunciado e documentos obrigatórios
+- Fila de petições para correção
+- Interface de correção com nota (0–10), feedback e três ações
+- Importação de alunos via CSV
+
+## Stack
+
+React 18 · TypeScript · Vite · Tailwind CSS · shadcn/ui · Supabase · React Router v6
+
+## Projeto original
 
 ## How can I edit this code?
 

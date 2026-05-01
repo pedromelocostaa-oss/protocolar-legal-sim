@@ -1,153 +1,227 @@
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import SystemLayout from "@/components/layout/SystemLayout";
-import { Eye, FileText, Search } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import EprocLayout from '@/components/layout/EprocLayout';
+import { Search } from 'lucide-react';
+import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
+import { getDemoProcessos } from '@/data/demoStore';
+import type { Processo } from '@/integrations/supabase/types';
 
-const mockProcessos = [
-  {
-    numero: "5001234-89.2026.8.13.0024",
-    classe: "[CÍVEL] PROCEDIMENTO COMUM CÍVEL (7)",
-    assunto: "Acidente de Trânsito (10435)",
-    comarca: "Belo Horizonte",
-    orgao: "2ª Vara Cível",
-    dataProtocolo: "10/03/2026 14:32:18",
-    poloAtivo: "João da Silva",
-    poloPassivo: "Empresa XYZ Ltda",
-    status: "Protocolado",
-    valorCausa: "50.000,00",
-  },
-  {
-    numero: "5005678-12.2026.8.13.0024",
-    classe: "[CÍVEL] PROCEDIMENTO COMUM CÍVEL (7)",
-    assunto: "Indenização por Dano Moral (10433)",
-    comarca: "Belo Horizonte",
-    orgao: "1ª Vara Cível",
-    dataProtocolo: "05/03/2026 09:15:44",
-    poloAtivo: "Maria Oliveira Santos",
-    poloPassivo: "Construtora ABC S.A.",
-    status: "Protocolado",
-    valorCausa: "30.000,00",
-  },
-];
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR');
+}
 
-const MeusProcessosPage = () => {
+function statusLabel(s: string): { label: string; cls: string } {
+  const map: Record<string, { label: string; cls: string }> = {
+    em_andamento: { label: 'Em Andamento', cls: 'badge-info' },
+    aguardando_resposta: { label: 'Aguardando Resposta', cls: 'badge-warning' },
+    com_despacho: { label: 'Com Despacho', cls: 'badge-warning' },
+    encerrado: { label: 'Encerrado', cls: 'badge-neutral' },
+    devolvido: { label: 'Devolvido p/ Ajuste', cls: 'badge-danger' },
+  };
+  return map[s] ?? { label: s, cls: 'badge-neutral' };
+}
+
+const PER_PAGE = 10;
+
+export default function MeusProcessosPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [filtroNumero, setFiltroNumero] = useState("");
-  const [processoSelecionado, setProcessoSelecionado] = useState<typeof mockProcessos[0] | null>(null);
+  const [searchParams] = useSearchParams();
+  const [processos, setProcessos] = useState<Processo[]>([]);
+  const [filter, setFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) {
-    navigate("/");
-    return null;
-  }
+  const statusFilter = searchParams.get('status');
 
-  const processosFiltrados = mockProcessos.filter((p) => {
-    return !filtroNumero || p.numero.includes(filtroNumero);
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+
+    if (DEMO_MODE) {
+      setProcessos(getDemoProcessos(user.id));
+      setLoading(false);
+      return;
+    }
+
+    supabase!
+      .from('processos')
+      .select('*')
+      .eq('aluno_id', user.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setProcessos(data);
+        setLoading(false);
+      });
+  }, [user]);
+
+  const filtered = processos.filter(p => {
+    const matchesStatus = statusFilter === 'ativo'
+      ? p.status !== 'encerrado'
+      : statusFilter === 'encerrado'
+        ? p.status === 'encerrado'
+        : true;
+    const matchesSearch = !filter || (
+      p.numero_processo.toLowerCase().includes(filter.toLowerCase()) ||
+      p.classe_processual.toLowerCase().includes(filter.toLowerCase()) ||
+      p.assunto.toLowerCase().includes(filter.toLowerCase()) ||
+      p.vara.toLowerCase().includes(filter.toLowerCase())
+    );
+    return matchesStatus && matchesSearch;
   });
 
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
   return (
-    <SystemLayout title="Meus Processos">
-      <div className="p-3">
-        {/* Filtro */}
-        <div className="mb-3">
-          <label className="form-label">Número do Processo</label>
-          <div className="flex gap-2">
-            <input
-              className="form-field"
-              style={{ maxWidth: 400 }}
-              placeholder="Ex: 5001234-89.2026..."
-              value={filtroNumero}
-              onChange={(e) => setFiltroNumero(e.target.value)}
-            />
-            <button className="btn-primary flex items-center gap-1" onClick={() => {}}>
-              <Search size={12} /> PESQUISAR
+    <EprocLayout>
+      <div className="p-4">
+        <div className="breadcrumb mb-4">
+          <button onClick={() => navigate('/dashboard')}>Início</button>
+          <span>›</span>
+          <span>Meus Processos</span>
+          {statusFilter && <span>› {statusFilter === 'ativo' ? 'Ativos' : 'Encerrados'}</span>}
+        </div>
+
+        <div className="bg-white border border-border">
+          <div className="panel-header flex items-center justify-between">
+            <span>MEUS PROCESSOS ({filtered.length})</span>
+            <button className="btn-success text-[10px] py-0.5 px-2" onClick={() => navigate('/peticao-inicial')}>
+              + Nova Petição
             </button>
-            <button className="btn-secondary" onClick={() => setFiltroNumero("")}>LIMPAR</button>
           </div>
-        </div>
 
-        {/* Tabela */}
-        <table className="data-table mb-2">
-          <thead>
-            <tr>
-              <th>Número do Processo</th>
-              <th>Classe Judicial</th>
-              <th>Assunto Principal</th>
-              <th>Comarca</th>
-              <th>Órgão Julgador</th>
-              <th>Data Protocolo</th>
-              <th>Status</th>
-              <th style={{ width: 60, textAlign: "center" }}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {processosFiltrados.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="text-center text-muted-foreground">
-                  Nenhum processo encontrado.
-                </td>
-              </tr>
-            ) : (
-              processosFiltrados.map((p, i) => (
-                <tr
-                  key={i}
-                  className="cursor-pointer"
-                  style={{ backgroundColor: processoSelecionado?.numero === p.numero ? "hsl(187, 45%, 95%)" : undefined }}
-                  onClick={() => setProcessoSelecionado(p)}
-                >
-                  <td className="font-mono font-semibold" style={{ color: "hsl(187, 45%, 32%)" }}>{p.numero}</td>
-                  <td>{p.classe}</td>
-                  <td>{p.assunto}</td>
-                  <td>{p.comarca}</td>
-                  <td>{p.orgao}</td>
-                  <td>{p.dataProtocolo}</td>
-                  <td><span className="badge-success">{p.status}</span></td>
-                  <td className="text-center">
-                    <button className="btn-primary text-[10px] px-1.5 py-0.5 flex items-center gap-0.5 mx-auto" onClick={(e) => { e.stopPropagation(); setProcessoSelecionado(p); }}>
-                      <Eye size={10} /> Ver
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-        <div className="text-[10px] text-muted-foreground mb-3">
-          {processosFiltrados.length} resultados encontrados
-        </div>
-
-        {/* Detalhe */}
-        {processoSelecionado && (
-          <div className="border bg-card p-3" style={{ borderColor: "hsl(220,12%,82%)" }}>
-            <div className="text-[12px] font-bold mb-2">Detalhes do Processo — {processoSelecionado.numero}</div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-              <DetailRow label="Número" value={processoSelecionado.numero} />
-              <DetailRow label="Status" value={processoSelecionado.status} />
-              <DetailRow label="Classe Judicial" value={processoSelecionado.classe} />
-              <DetailRow label="Assunto Principal" value={processoSelecionado.assunto} />
-              <DetailRow label="Comarca" value={processoSelecionado.comarca} />
-              <DetailRow label="Órgão Julgador" value={processoSelecionado.orgao} />
-              <DetailRow label="Polo Ativo" value={processoSelecionado.poloAtivo} />
-              <DetailRow label="Polo Passivo" value={processoSelecionado.poloPassivo} />
-              <DetailRow label="Valor da Causa" value={`R$ ${processoSelecionado.valorCausa}`} />
-              <DetailRow label="Data do Protocolo" value={processoSelecionado.dataProtocolo} />
-            </div>
-            <div className="mt-3">
-              <button className="btn-secondary" onClick={() => setProcessoSelecionado(null)}>Fechar</button>
+          <div className="p-3 border-b border-border">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-48">
+                <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="text"
+                  className="form-field pl-7"
+                  placeholder="Buscar por número, classe, assunto..."
+                  value={filter}
+                  onChange={e => { setFilter(e.target.value); setPage(1); }}
+                />
+              </div>
+              <div className="flex gap-1">
+                {[
+                  { label: 'Todos', val: '' },
+                  { label: 'Ativos', val: 'ativo' },
+                  { label: 'Encerrados', val: 'encerrado' },
+                ].map(btn => (
+                  <button
+                    key={btn.val}
+                    className={(statusFilter ?? '') === btn.val ? 'btn-primary text-[11px] py-1 px-2' : 'btn-secondary text-[11px] py-1 px-2'}
+                    onClick={() => {
+                      if (btn.val) navigate(`/meus-processos?status=${btn.val}`);
+                      else navigate('/meus-processos');
+                      setPage(1);
+                    }}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        )}
+
+          {loading && (
+            <div className="p-8 text-center text-[12px] text-muted-foreground">Carregando processos...</div>
+          )}
+
+          {!loading && (
+            <>
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Número do Processo</th>
+                      <th>Classe</th>
+                      <th>Assunto</th>
+                      <th>Vara</th>
+                      <th>Data Protocolo</th>
+                      <th>Situação</th>
+                      <th>Nota</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.length === 0 && (
+                      <tr>
+                        <td colSpan={8} className="text-center py-8 text-muted-foreground">
+                          {processos.length === 0
+                            ? 'Nenhum processo protocolado. Clique em "Nova Petição" para começar.'
+                            : 'Nenhum resultado encontrado.'}
+                        </td>
+                      </tr>
+                    )}
+                    {paginated.map(p => {
+                      const st = statusLabel(p.status);
+                      return (
+                        <tr
+                          key={p.id}
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/processo/${p.id}`)}
+                        >
+                          <td className="font-mono text-[11px] font-semibold">{p.numero_processo}</td>
+                          <td>{p.classe_processual}</td>
+                          <td className="max-w-[180px]">
+                            <div className="truncate">{p.assunto}</div>
+                          </td>
+                          <td>{p.vara}</td>
+                          <td>{formatDate(p.created_at)}</td>
+                          <td><span className={st.cls}>{st.label}</span></td>
+                          <td className="text-center font-bold">{p.nota != null ? p.nota.toFixed(1) : '—'}</td>
+                          <td onClick={e => e.stopPropagation()}>
+                            <div className="flex gap-1">
+                              <button
+                                className="btn-primary text-[10px] py-0.5 px-2"
+                                onClick={() => navigate(`/processo/${p.id}`)}
+                              >
+                                Detalhes
+                              </button>
+                              {p.status !== 'encerrado' && (
+                                <button
+                                  className="btn-secondary text-[10px] py-0.5 px-2"
+                                  onClick={() => navigate(`/peticao-incidental?processo=${p.id}`)}
+                                >
+                                  Peticionar
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-3 border-t border-border text-[11px]">
+                  <span className="text-muted-foreground">
+                    {((page - 1) * PER_PAGE) + 1}–{Math.min(page * PER_PAGE, filtered.length)} de {filtered.length}
+                  </span>
+                  <div className="flex gap-1">
+                    <button className="btn-secondary px-2 py-0.5 text-[10px]" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Ant.</button>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <button
+                        key={i + 1}
+                        className={page === i + 1 ? 'btn-primary px-2 py-0.5 text-[10px]' : 'btn-secondary px-2 py-0.5 text-[10px]'}
+                        onClick={() => setPage(i + 1)}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button className="btn-secondary px-2 py-0.5 text-[10px]" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Próx. →</button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </SystemLayout>
+    </EprocLayout>
   );
-};
-
-const DetailRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex gap-2 py-0.5 border-b" style={{ borderColor: "hsl(220, 12%, 92%)" }}>
-    <span className="text-[10px] font-bold text-muted-foreground w-[140px] shrink-0">{label}:</span>
-    <span className="text-[11px] text-foreground">{value}</span>
-  </div>
-);
-
-export default MeusProcessosPage;
+}
