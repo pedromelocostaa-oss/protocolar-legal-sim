@@ -172,19 +172,19 @@ export default function MeusProcessosPage() {
                           <td onClick={e => e.stopPropagation()}>
                             <div className="flex gap-2 items-center">
                               <button
-                                title="Ver autos"
-                                className="text-[16px] hover:opacity-70 cursor-pointer"
+                                className="text-[11px] hover:underline cursor-pointer"
+                                style={{ color: 'hsl(210,100%,20%)' }}
                                 onClick={() => navigate(`/processo/${p.id}`)}
                               >
-                                🔍
+                                [Ver Autos]
                               </button>
                               {p.status !== 'encerrado' && (
                                 <button
-                                  title="Peticionar incidentalmente"
-                                  className="text-[16px] hover:opacity-70 cursor-pointer"
+                                  className="text-[11px] hover:underline cursor-pointer"
+                                  style={{ color: 'hsl(210,100%,20%)' }}
                                   onClick={() => navigate(`/peticao-incidental?processo=${p.id}`)}
                                 >
-                                  📄
+                                  [Peticionar]
                                 </button>
                               )}
                             </div>

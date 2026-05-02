@@ -19,7 +19,7 @@ export default function EprocLayout({ children, showSidebar = true, intimacoesCo
       />
       <div className="flex flex-1 overflow-hidden">
         {showSidebar && <EprocSidebar collapsed={sidebarCollapsed} intimacoesCount={intimacoesCount} />}
-        <main className="flex-1 overflow-y-auto bg-background">
+        <main className="flex-1 overflow-y-auto" style={{ backgroundColor: 'hsl(var(--bg-page))' }}>
           {children}
         </main>
       </div>

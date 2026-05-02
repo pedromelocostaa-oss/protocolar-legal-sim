@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import EprocLayout from '@/components/layout/EprocLayout';
+import ProfLayout from '@/components/layout/ProfLayout';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoTarefas, getAllDemoProcessos, demoTurmas
 } from '@/data/demoStore';
 import type { Processo, Tarefa } from '@/integrations/supabase/types';
-import { BookOpen, Users, ClipboardList, CheckCircle, Clock } from 'lucide-react';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR');
@@ -74,7 +73,7 @@ export default function DashboardProfessoraPage() {
   const tarefasAtivas = tarefas.filter(t => t.ativa);
 
   return (
-    <EprocLayout>
+    <ProfLayout>
       <div className="p-4">
         <div className="breadcrumb mb-4">
           <span>Início</span>
@@ -97,10 +96,10 @@ export default function DashboardProfessoraPage() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <SCard icon={<ClipboardList size={18} />} label="Petições Pendentes" value={pendentes.length} color="orange" onClick={() => navigate('/prof/peticoes')} />
-          <SCard icon={<CheckCircle size={18} />} label="Corrigidas" value={corrigidos.length} color="green" onClick={() => navigate('/prof/peticoes')} />
-          <SCard icon={<BookOpen size={18} />} label="Tarefas Ativas" value={tarefasAtivas.length} color="blue" onClick={() => navigate('/prof/tarefas')} />
-          <SCard icon={<Users size={18} />} label="Alunos" value={2} color="blue" onClick={() => navigate('/prof/alunos')} />
+          <SCard label="Petições Pendentes" value={pendentes.length} color="orange" onClick={() => navigate('/prof/peticoes')} />
+          <SCard label="Corrigidas" value={corrigidos.length} color="green" onClick={() => navigate('/prof/peticoes')} />
+          <SCard label="Tarefas Ativas" value={tarefasAtivas.length} color="blue" onClick={() => navigate('/prof/tarefas')} />
+          <SCard label="Alunos" value={2} color="blue" onClick={() => navigate('/prof/alunos')} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -189,12 +188,12 @@ export default function DashboardProfessoraPage() {
           </div>
         </div>
       </div>
-    </EprocLayout>
+    </ProfLayout>
   );
 }
 
-function SCard({ icon, label, value, color, onClick }: {
-  icon: React.ReactNode; label: string; value: number;
+function SCard({ label, value, color, onClick }: {
+  label: string; value: number;
   color: 'blue' | 'green' | 'orange' | 'red'; onClick: () => void;
 }) {
   const colors = {
@@ -203,13 +202,8 @@ function SCard({ icon, label, value, color, onClick }: {
   };
   return (
     <div className="bg-white border border-border p-3 cursor-pointer hover:shadow-sm" onClick={onClick}>
-      <div className="flex items-center gap-2">
-        <div className="text-white rounded-sm p-1.5" style={{ background: colors[color] }}>{icon}</div>
-        <div>
-          <div className="text-[20px] font-bold" style={{ color: colors[color] }}>{value}</div>
-          <div className="text-[10px] text-muted-foreground leading-tight">{label}</div>
-        </div>
-      </div>
+      <div className="text-[22px] font-bold" style={{ color: colors[color] }}>{value}</div>
+      <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{label}</div>
     </div>
   );
 }

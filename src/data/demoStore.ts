@@ -30,6 +30,39 @@ export const demoTurmas: Turma[] = [
 ];
 
 // ---------- TAREFAS ----------
+const PETICAO_REFERENCIA_DEMO = `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) FEDERAL DA _ª VARA FEDERAL DE BELO HORIZONTE — MG
+
+ROBERTO FERREIRA DOS SANTOS, brasileiro, casado, empresário, portador do CPF nº 987.654.321-00 e RG nº 7.654.321 SSP/MG, residente e domiciliado na Rua dos Andradas, nº 250, Bairro Centro, Belo Horizonte/MG, CEP 30.120-010, por seu advogado que esta subscreve, vem, respeitosamente, à presença de Vossa Excelência, propor a presente
+
+AÇÃO DE INDENIZAÇÃO POR DANOS MORAIS E MATERIAIS
+
+em face de TRANSPORTADORA RÁPIDO SUL LTDA., pessoa jurídica de direito privado, inscrita no CNPJ nº 12.345.678/0001-99, com sede na Avenida do Contorno, nº 1.500, Bairro Funcionários, Belo Horizonte/MG, CEP 30.110-090, pelos fatos e fundamentos a seguir expostos:
+
+I — DOS FATOS
+
+No dia 15 de março de 2025, o autor conduzia seu veículo (Ford Ka, 2022, placas ABC-1234) pela Avenida do Contorno, sentido Centro-Bairro, quando foi violentamente abalroado por caminhão da empresa requerida, conduzido por seu preposto em evidente excesso de velocidade e sem respeitar a preferencial.
+
+O acidente resultou em: (a) danos materiais ao veículo estimados em R$ 12.500,00 (doze mil e quinhentos reais), conforme laudo de avaliação em anexo; (b) lesões corporais que exigiram 15 dias de afastamento do trabalho, com perda de rendimentos no valor de R$ 4.800,00; e (c) graves danos morais decorrentes do abalo psicológico, constrangimento e sofrimento vivenciados pelo autor e sua família.
+
+II — DO DIREITO
+
+A responsabilidade civil da requerida decorre do art. 932, III, c/c art. 933 do Código Civil (responsabilidade objetiva por ato de preposto), bem como dos princípios gerais da responsabilidade aquiliana (art. 186 e 927 do CC). O dano moral é presumido (in re ipsa) em situações de acidente com lesão corporal, conforme consolidada jurisprudência do Superior Tribunal de Justiça.
+
+III — DOS PEDIDOS
+
+Ante o exposto, requer a Vossa Excelência:
+a) A condenação da requerida ao pagamento de R$ 12.500,00 a título de danos materiais (reparação do veículo);
+b) A condenação ao pagamento de R$ 15.000,00 a título de danos morais;
+c) O pagamento de lucros cessantes no valor de R$ 4.800,00;
+d) A concessão de tutela de urgência para bloqueio de ativos da requerida, dado o periculum in mora.
+
+Valor da causa: R$ 32.300,00 (trinta e dois mil e trezentos reais).
+
+Belo Horizonte, 01 de abril de 2025.
+
+Dr(a). Advogado(a) Simulado(a)
+OAB/MG nº Sim.00001`;
+
 const defaultTarefas: Tarefa[] = [
   {
     id: 'demo-tarefa-1',
@@ -42,6 +75,9 @@ const defaultTarefas: Tarefa[] = [
     documentos_obrigatorios: ['Petição Inicial', 'Procuração', 'Documento de Identidade'],
     ativa: true,
     created_at: '2025-02-28T00:00:00Z',
+    tipo_atividade: 'peticao_inicial',
+    peticao_referencia: null,
+    peticao_referencia_arquivo_nome: null,
   },
   {
     id: 'demo-tarefa-2',
@@ -54,6 +90,24 @@ const defaultTarefas: Tarefa[] = [
     documentos_obrigatorios: ['Petição Inicial', 'Procuração', 'Comprovante de Residência'],
     ativa: true,
     created_at: '2025-03-25T00:00:00Z',
+    tipo_atividade: 'peticao_inicial',
+    peticao_referencia: null,
+    peticao_referencia_arquivo_nome: null,
+  },
+  {
+    id: 'demo-tarefa-3',
+    titulo: 'Defesa — Responsabilidade Civil (Transportadora)',
+    descricao: `**Objetivo:** Você foi citado(a) em ação de responsabilidade civil. Elabore e protocole a contestação em defesa da TRANSPORTADORA RÁPIDO SUL LTDA.\n\n**Enunciado:** A transportadora foi acionada por danos decorrentes de acidente de trânsito envolvendo seu preposto. Redija contestação arguindo excludentes de responsabilidade, culpa concorrente e impugnando os valores pleiteados.\n\n**Documentos obrigatórios:** Contestação, procuração, documentos do veículo.`,
+    turma_id: 'demo-turma-1',
+    professor_id: 'demo-prof-1',
+    data_inicio: '2025-04-15T00:00:00Z',
+    prazo: '2025-05-30T23:59:59Z',
+    documentos_obrigatorios: ['Contestação', 'Procuração'],
+    ativa: true,
+    created_at: '2025-04-14T00:00:00Z',
+    tipo_atividade: 'defesa',
+    peticao_referencia: PETICAO_REFERENCIA_DEMO,
+    peticao_referencia_arquivo_nome: 'Peticao_Inicial_Responsabilidade_Civil.pdf',
   },
 ];
 
@@ -71,6 +125,15 @@ export function saveDemoTarefa(tarefa: Tarefa) {
 
 export function deleteDemoTarefa(id: string) {
   set(KEYS.tarefas, getDemoTarefas().filter(t => t.id !== id));
+}
+
+export function getDemoTarefasDefesa(turmaId: string): Tarefa[] {
+  return getDemoTarefas().filter(t =>
+    t.turma_id === turmaId &&
+    t.ativa &&
+    t.tipo_atividade === 'defesa' &&
+    t.peticao_referencia != null
+  );
 }
 
 // ---------- PROCESSOS ----------

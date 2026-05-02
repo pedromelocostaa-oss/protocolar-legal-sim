@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ReactNode, useState } from 'react';
 
 interface SidebarItemProps {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   path?: string;
   onClick?: () => void;
@@ -26,7 +26,7 @@ function SidebarItem({ icon, label, path, onClick, active, disabled, badge }: Si
       onClick={handleClick}
       disabled={disabled}
     >
-      {icon}
+      {icon ?? <span className="text-[10px] opacity-60">▸</span>}
       <span className="flex-1 text-left">{label}</span>
       {badge != null && badge > 0 && (
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white bg-red-500">{badge}</span>
@@ -37,7 +37,7 @@ function SidebarItem({ icon, label, path, onClick, active, disabled, badge }: Si
 }
 
 interface ExpandableProps {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   children: ReactNode;
   defaultOpen?: boolean;
@@ -52,7 +52,7 @@ function ExpandableItem({ icon, label, children, defaultOpen = false, active }: 
         className={`pje-sidebar-item w-full ${active ? 'pje-sidebar-item-active' : ''}`}
         onClick={() => setOpen(!open)}
       >
-        {icon}
+        {icon ?? <span className="text-[10px] opacity-60">▸</span>}
         <span className="flex-1 text-left font-semibold">{label}</span>
         {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
       </button>
@@ -95,10 +95,9 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
       {/* --- ALUNO --- */}
       {isAluno && (
         <>
-          <SidebarItem icon={<LayoutDashboard size={14} />} label="Painel" path="/dashboard" active={at('/dashboard')} />
+          <SidebarItem label="Painel" path="/dashboard" active={at('/dashboard')} />
 
           <ExpandableItem
-            icon={<FileText size={14} />}
             label="Peticionar"
             defaultOpen={startsWith('/peticao') || startsWith('/processo')}
             active={startsWith('/peticao') || startsWith('/processo')}
@@ -108,7 +107,6 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
           </ExpandableItem>
 
           <ExpandableItem
-            icon={<FolderOpen size={14} />}
             label="Meus Processos"
             defaultOpen={startsWith('/meus-processos') || startsWith('/processo/')}
             active={startsWith('/meus-processos') || startsWith('/processo/')}
@@ -119,7 +117,6 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
           </ExpandableItem>
 
           <SidebarItem
-            icon={<Bell size={14} />}
             label="Intimações e Citações"
             path="/intimacoes"
             active={at('/intimacoes')}
@@ -127,13 +124,12 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
           />
 
           <SidebarItem
-            icon={<Search size={14} />}
             label="Consulta Processual"
             path="/consulta-publica"
             active={at('/consulta-publica')}
           />
 
-          <SidebarItem icon={<Settings size={14} />} label="Meus Dados" path="/meus-dados" active={at('/meus-dados')} />
+          <SidebarItem label="Meus Dados" path="/meus-dados" active={at('/meus-dados')} />
         </>
       )}
 

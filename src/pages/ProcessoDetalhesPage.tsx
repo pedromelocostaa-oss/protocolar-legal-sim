@@ -30,12 +30,12 @@ function statusLabel(s: string): { label: string; cls: string } {
 
 function movTipoLabel(tipo: string): string {
   const map: Record<string, string> = {
-    distribuicao: '⚖ Distribuição',
-    despacho: '📋 Despacho',
-    intimacao: '📬 Intimação',
-    peticao_incidental: '📄 Petição Incidental',
-    encerramento: '✅ Encerramento',
-    solicitacao_emenda: '🔄 Solicitação de Emenda',
+    distribuicao: '[DIST.] Distribuição',
+    despacho: '[DESP.] Despacho',
+    intimacao: '[INTIM.] Intimação',
+    peticao_incidental: '[PET.] Petição Incidental',
+    encerramento: '[ENC.] Encerramento',
+    solicitacao_emenda: '[EMENDA] Solicitação de Emenda',
   };
   return map[tipo] ?? tipo;
 }
@@ -188,7 +188,13 @@ export default function ProcessoDetalhesPage() {
                           </span>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-[11px] text-muted-foreground">{formatDate(m.created_at)}</span>
-                            <span title="Visualizar documento" className="text-[14px] cursor-default opacity-60 hover:opacity-100" aria-label="Visualizar documento">🔍</span>
+                            <button
+                              className="text-[11px] hover:underline cursor-pointer"
+                              style={{ color: 'hsl(210,100%,20%)' }}
+                              onClick={() => {}}
+                            >
+                              [Ver]
+                            </button>
                           </div>
                         </div>
                         <div className="text-[12px] mt-1 whitespace-pre-line">{m.descricao}</div>

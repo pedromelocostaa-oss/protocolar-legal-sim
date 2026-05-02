@@ -135,17 +135,17 @@ export default function EprocHeader({ onToggleSidebar, intimacoesNaoLidas = 0 }:
 
       {/* Secondary navigation bar */}
       <div className="eproc-header-sub">
-        <button className="eproc-subheader-link font-bold" onClick={() => {}}>Início</button>
+        <button className="eproc-subheader-link font-bold" onClick={() => navigate('/dashboard')}>Início</button>
         <span className="opacity-40">|</span>
-        <button className="eproc-subheader-link" onClick={() => {}}>Petição Inicial</button>
+        <button className="eproc-subheader-link" onClick={() => navigate('/peticao-inicial')}>Petição Inicial</button>
         <span className="opacity-40">|</span>
-        <button className="eproc-subheader-link" onClick={() => {}}>Consulta Processual</button>
+        <button className="eproc-subheader-link" onClick={() => navigate('/consulta-publica')}>Consulta Processual</button>
         <span className="opacity-40">|</span>
-        <button className="eproc-subheader-link" onClick={() => {}}>Intimações</button>
+        <button className="eproc-subheader-link" onClick={() => navigate('/intimacoes')}>Intimações</button>
         <span className="opacity-40">|</span>
-        <button className="eproc-subheader-link" onClick={() => {}}>Manuais</button>
+        <button className="eproc-subheader-link" onClick={() => navigate('/meus-processos')}>Meus Processos</button>
         <span className="opacity-40">|</span>
-        <button className="eproc-subheader-link" onClick={() => {}}>Fale Conosco</button>
+        <button className="eproc-subheader-link" onClick={() => navigate('/meus-dados')}>Meus Dados</button>
       </div>
     </div>
   );

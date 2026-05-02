@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import EprocLayout from '@/components/layout/EprocLayout';
+import ProfLayout from '@/components/layout/ProfLayout';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getDemoTarefas, saveDemoTarefa, deleteDemoTarefa, demoTurmas } from '@/data/demoStore';
 import type { Tarefa } from '@/integrations/supabase/types';
@@ -17,6 +17,8 @@ interface TarefaForm {
   prazo: string;
   documentos_obrigatorios: string[];
   ativa: boolean;
+  tipo_atividade: 'peticao_inicial' | 'defesa';
+  peticao_referencia: string;
 }
 
 export default function GerenciarTarefasPage() {
@@ -29,6 +31,7 @@ export default function GerenciarTarefasPage() {
   const [form, setForm] = useState<TarefaForm>({
     titulo: '', descricao: '', turma_id: demoTurmas[0]?.id ?? '',
     data_inicio: '', prazo: '', documentos_obrigatorios: ['Petição Inicial'], ativa: true,
+    tipo_atividade: 'peticao_inicial', peticao_referencia: '',
   });
 
   const loadTarefas = () => {
@@ -45,7 +48,7 @@ export default function GerenciarTarefasPage() {
   useEffect(loadTarefas, [user]);
 
   const resetForm = () => {
-    setForm({ titulo: '', descricao: '', turma_id: demoTurmas[0]?.id ?? '', data_inicio: '', prazo: '', documentos_obrigatorios: ['Petição Inicial'], ativa: true });
+    setForm({ titulo: '', descricao: '', turma_id: demoTurmas[0]?.id ?? '', data_inicio: '', prazo: '', documentos_obrigatorios: ['Petição Inicial'], ativa: true, tipo_atividade: 'peticao_inicial', peticao_referencia: '' });
     setEditingId(null);
     setShowForm(false);
   };
@@ -57,6 +60,8 @@ export default function GerenciarTarefasPage() {
       prazo: t.prazo?.split('T')[0] ?? '',
       documentos_obrigatorios: (t.documentos_obrigatorios as string[]) ?? ['Petição Inicial'],
       ativa: t.ativa,
+      tipo_atividade: (t.tipo_atividade as 'peticao_inicial' | 'defesa') ?? 'peticao_inicial',
+      peticao_referencia: t.peticao_referencia ?? '',
     });
     setEditingId(t.id);
     setShowForm(true);
@@ -76,6 +81,9 @@ export default function GerenciarTarefasPage() {
       prazo: form.prazo ? `${form.prazo}T23:59:59Z` : null,
       documentos_obrigatorios: form.documentos_obrigatorios,
       ativa: form.ativa,
+      tipo_atividade: form.tipo_atividade,
+      peticao_referencia: form.tipo_atividade === 'defesa' ? (form.peticao_referencia || null) : null,
+      peticao_referencia_arquivo_nome: null,
       created_at: new Date().toISOString(),
     };
 
@@ -115,7 +123,7 @@ export default function GerenciarTarefasPage() {
     setForm(f => ({ ...f, documentos_obrigatorios: f.documentos_obrigatorios.filter((_, idx) => idx !== i) }));
 
   return (
-    <EprocLayout>
+    <ProfLayout>
       <div className="p-4">
         <div className="breadcrumb mb-4">
           <button onClick={() => navigate('/prof/dashboard')}>Início</button>
@@ -169,6 +177,48 @@ export default function GerenciarTarefasPage() {
                   <Plus size={11} /> Adicionar
                 </button>
               </div>
+
+              <div>
+                <label className="form-label required">Tipo de Atividade</label>
+                <div className="flex gap-4 mt-1">
+                  <label className="pje-radio">
+                    <input
+                      type="radio"
+                      name="tipo_atividade"
+                      value="peticao_inicial"
+                      checked={form.tipo_atividade === 'peticao_inicial'}
+                      onChange={() => setForm(f => ({ ...f, tipo_atividade: 'peticao_inicial', peticao_referencia: '' }))}
+                    />
+                    <span>Petição Inicial (autor)</span>
+                  </label>
+                  <label className="pje-radio">
+                    <input
+                      type="radio"
+                      name="tipo_atividade"
+                      value="defesa"
+                      checked={form.tipo_atividade === 'defesa'}
+                      onChange={() => setForm(f => ({ ...f, tipo_atividade: 'defesa' }))}
+                    />
+                    <span>Defesa / Contestação (réu)</span>
+                  </label>
+                </div>
+              </div>
+
+              {form.tipo_atividade === 'defesa' && (
+                <div>
+                  <label className="form-label required">Petição Inicial de Referência</label>
+                  <div className="text-[11px] text-muted-foreground mb-1">
+                    Cole aqui o texto da petição inicial que o aluno deverá contestar.
+                  </div>
+                  <textarea
+                    className="form-field min-h-40 font-mono text-[11px]"
+                    rows={10}
+                    value={form.peticao_referencia}
+                    onChange={e => setForm(f => ({ ...f, peticao_referencia: e.target.value }))}
+                    placeholder="Cole aqui o texto completo da petição inicial (exordial) que servirá de referência..."
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="pje-checkbox">
@@ -251,6 +301,6 @@ export default function GerenciarTarefasPage() {
           </div>
         </div>
       </div>
-    </EprocLayout>
+    </ProfLayout>
   );
 }

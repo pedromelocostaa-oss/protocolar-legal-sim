@@ -75,6 +75,9 @@ export interface Database {
           documentos_obrigatorios: Json | null;
           ativa: boolean;
           created_at: string;
+          tipo_atividade?: 'peticao_inicial' | 'defesa';
+          peticao_referencia?: string | null;
+          peticao_referencia_arquivo_nome?: string | null;
         };
         Insert: {
           id?: string;
@@ -87,6 +90,9 @@ export interface Database {
           documentos_obrigatorios?: Json | null;
           ativa?: boolean;
           created_at?: string;
+          tipo_atividade?: 'peticao_inicial' | 'defesa';
+          peticao_referencia?: string | null;
+          peticao_referencia_arquivo_nome?: string | null;
         };
         Update: {
           titulo?: string;
@@ -96,6 +102,9 @@ export interface Database {
           prazo?: string | null;
           documentos_obrigatorios?: Json | null;
           ativa?: boolean;
+          tipo_atividade?: 'peticao_inicial' | 'defesa';
+          peticao_referencia?: string | null;
+          peticao_referencia_arquivo_nome?: string | null;
         };
       };
       processos: {

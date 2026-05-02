@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
-import { PlusCircle, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
-  getDemoIntimacoesNaoLidas
+  getDemoIntimacoesNaoLidas, getDemoTarefasDefesa,
 } from '@/data/demoStore';
 import type { Processo, Tarefa, Intimacao } from '@/integrations/supabase/types';
 
@@ -30,6 +30,7 @@ export default function DashboardAlunoPage() {
   const navigate = useNavigate();
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+  const [tarefasDefesa, setTarefasDefesa] = useState<Tarefa[]>([]);
   const [intimacoes, setIntimacoes] = useState<Intimacao[]>([]);
   const [intimacoesNaoLidas, setIntimacoesNaoLidas] = useState(0);
 
@@ -42,6 +43,7 @@ export default function DashboardAlunoPage() {
       setIntimacoesNaoLidas(getDemoIntimacoesNaoLidas(user.id));
       const tarefasAll = getDemoTarefas();
       setTarefas(tarefasAll.filter(t => t.turma_id === user.turma_id && t.ativa));
+      setTarefasDefesa(getDemoTarefasDefesa(user.turma_id ?? ''));
       return;
     }
 
@@ -145,6 +147,58 @@ export default function DashboardAlunoPage() {
             </button>
           </div>
         </div>
+
+        {/* SEÇÃO 1b — CITAÇÃO / DEFESA */}
+        {tarefasDefesa.length > 0 && (
+          <div className="eproc-painel-section">
+            <div className="eproc-painel-section-header">CITAÇÃO — AÇÃO EM QUE FOI CITADO(A)</div>
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Processo</th>
+                    <th>Tarefa / Enunciado</th>
+                    <th>Prazo para Contestar</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tarefasDefesa.map(t => {
+                    const vencido = t.prazo && new Date(t.prazo) < now;
+                    return (
+                      <tr key={t.id}>
+                        <td className="font-mono text-[11px]">1000099-01.2025.4.01.3800</td>
+                        <td className="font-semibold">{t.titulo}</td>
+                        <td className={`font-bold ${vencido ? 'text-red-600' : 'text-orange-600'}`}>
+                          {t.prazo ? formatDate(t.prazo) : '—'}
+                          {vencido && <span className="ml-1 text-[10px]">VENCIDO</span>}
+                        </td>
+                        <td>
+                          <div className="flex gap-3">
+                            <button
+                              className="text-[11px] hover:underline cursor-pointer"
+                              style={{ color: 'hsl(210,100%,20%)' }}
+                              onClick={() => navigate(`/peticao-referencia/${t.id}`)}
+                            >
+                              [Ver Petição Inicial]
+                            </button>
+                            <button
+                              className="text-[11px] hover:underline cursor-pointer"
+                              style={{ color: 'hsl(210,100%,20%)' }}
+                              onClick={() => navigate(`/peticao-incidental?tarefa=${t.id}&tipo=Contesta%C3%A7%C3%A3o`)}
+                            >
+                              [Protocolar Contestação]
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* SEÇÃO 2 — RELAÇÃO DE PROCESSOS */}
         <div className="eproc-painel-section">

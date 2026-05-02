@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import EprocLayout from '@/components/layout/EprocLayout';
+import ProfLayout from '@/components/layout/ProfLayout';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getAllDemoProcessos, getDemoPartes, getDemoDocumentos,
@@ -138,12 +138,12 @@ export default function CorrecaoPage() {
     }
   };
 
-  if (loading) return <EprocLayout><div className="p-8 text-center text-muted-foreground">Carregando...</div></EprocLayout>;
-  if (!processo) return <EprocLayout><div className="p-8 text-center text-muted-foreground">Processo não encontrado.</div></EprocLayout>;
+  if (loading) return <ProfLayout><div className="p-8 text-center text-muted-foreground">Carregando...</div></ProfLayout>;
+  if (!processo) return <ProfLayout><div className="p-8 text-center text-muted-foreground">Processo não encontrado.</div></ProfLayout>;
 
   if (salvo) {
     return (
-      <EprocLayout>
+      <ProfLayout>
         <div className="p-4 max-w-xl mx-auto">
           <div className="bg-white border border-border">
             <div className="panel-header flex items-center gap-2"><CheckCircle size={16} /> CORREÇÃO SALVA</div>
@@ -160,7 +160,7 @@ export default function CorrecaoPage() {
             </div>
           </div>
         </div>
-      </EprocLayout>
+      </ProfLayout>
     );
   }
 

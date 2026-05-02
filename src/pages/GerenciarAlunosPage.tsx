@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import EprocLayout from '@/components/layout/EprocLayout';
+import ProfLayout from '@/components/layout/ProfLayout';
 import { Upload, Users } from 'lucide-react';
 import Papa from 'papaparse';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
@@ -106,7 +106,7 @@ export default function GerenciarAlunosPage() {
   };
 
   return (
-    <EprocLayout>
+    <ProfLayout>
       <div className="p-4">
         <div className="breadcrumb mb-4">
           <button onClick={() => navigate('/prof/dashboard')}>Início</button>
@@ -242,6 +242,6 @@ export default function GerenciarAlunosPage() {
           </div>
         </div>
       </div>
-    </EprocLayout>
+    </ProfLayout>
   );
 }

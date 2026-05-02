@@ -11,7 +11,7 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   demoMode: boolean;
-  login: (cpf: string, senha: string) => Promise<{ error: string | null }>;
+  login: (cpf: string, senha: string) => Promise<{ error: string | null; user?: AuthUser | null }>;
   logout: () => Promise<void>;
   trocarSenha: (novaSenha: string) => Promise<{ error: string | null }>;
   refreshUser: () => Promise<void>;
@@ -105,13 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (cpf: string, senha: string): Promise<{ error: string | null }> => {
+  const login = async (cpf: string, senha: string): Promise<{ error: string | null; user?: AuthUser | null }> => {
     if (DEMO_MODE) {
       const demoUser = getDemoUser(cpf, senha);
-      if (!demoUser) return { error: 'CPF ou senha inválidos.' };
+      if (!demoUser) return { error: 'CPF ou senha inválidos.', user: null };
       setUser(demoUser);
       localStorage.setItem('eproc-demo-user', JSON.stringify(demoUser));
-      return { error: null };
+      return { error: null, user: demoUser };
     }
 
     const email = cpfToEmail(cpf);
@@ -120,13 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const msg = error.message.includes('Invalid login')
         ? 'CPF ou senha inválidos.'
         : error.message;
-      return { error: msg };
+      return { error: msg, user: null };
     }
     if (data.user) {
       const profile = await loadProfile(data.user.id);
       setUser(profile);
+      return { error: null, user: profile };
     }
-    return { error: null };
+    return { error: null, user: null };
   };
 
   const logout = async () => {

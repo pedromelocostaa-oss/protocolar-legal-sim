@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import EprocLayout from '@/components/layout/EprocLayout';
+import ProfLayout from "@/components/layout/ProfLayout";;
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getAllDemoProcessos } from '@/data/demoStore';
 import type { Processo } from '@/integrations/supabase/types';
@@ -62,7 +62,7 @@ export default function FilaPeticoesPage() {
   const pendentes = processos.filter(p => p.status === 'em_andamento').length;
 
   return (
-    <EprocLayout>
+    <ProfLayout>
       <div className="p-4">
         <div className="breadcrumb mb-4">
           <button onClick={() => navigate('/prof/dashboard')}>Início</button>
@@ -156,6 +156,6 @@ export default function FilaPeticoesPage() {
           )}
         </div>
       </div>
-    </EprocLayout>
+    </ProfLayout>
   );
 }

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCpf } from '@/lib/masks';
 
+type PerfilTab = 'aluno' | 'professor';
+
 export default function LoginPage() {
   const { login, demoMode } = useAuth();
   const navigate = useNavigate();
@@ -10,6 +12,7 @@ export default function LoginPage() {
   const [senha, setSenha] = useState(demoMode ? 'Milton@2025' : '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [perfilSelecionado, setPerfilSelecionado] = useState<PerfilTab>('aluno');
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCpf(formatCpf(e.target.value));
@@ -21,12 +24,39 @@ export default function LoginPage() {
     if (!cpf || !senha) { setError('Preencha CPF e senha.'); return; }
 
     setLoading(true);
-    const { error: loginError } = await login(cpf, senha);
+    const { error: loginError, user } = await login(cpf, senha);
     setLoading(false);
 
     if (loginError) { setError(loginError); return; }
-    navigate('/dashboard');
+
+    if (user && perfilSelecionado === 'professor' && user.perfil === 'aluno') {
+      setError('Acesso não autorizado para este perfil. Use a aba "Advogado / Aluno".');
+      return;
+    }
+    if (user && perfilSelecionado === 'aluno' && (user.perfil === 'professor' || user.perfil === 'admin')) {
+      setError('Use a aba "Magistrado(a) / Professor(a)" para acessar.');
+      return;
+    }
+
+    navigate(user?.perfil === 'professor' || user?.perfil === 'admin' ? '/prof/dashboard' : '/dashboard');
   };
+
+  const subHeaderAluno = (
+    <div className="flex items-center gap-4 px-4 py-1 text-[11px]" style={{ background: 'hsl(213, 100%, 28%)' }}>
+      <span className="font-bold cursor-pointer hover:underline text-white">Entrar</span>
+      <span className="cursor-pointer hover:underline text-white">Formas de acesso</span>
+      <span className="cursor-pointer hover:underline text-white" onClick={() => window.location.href = '/consulta-publica'}>Consulta processual</span>
+      <span className="cursor-pointer hover:underline text-white">Manuais</span>
+      <span className="cursor-pointer hover:underline text-white">Fale conosco</span>
+    </div>
+  );
+
+  const subHeaderProf = (
+    <div className="flex items-center gap-4 px-4 py-1 text-[11px]" style={{ background: 'hsl(213, 100%, 28%)' }}>
+      <span className="font-bold text-white">Sistema de Gestão Acadêmica</span>
+      <span className="text-white opacity-60 ml-auto">Acesso restrito — Magistrados e Professores</span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'hsl(213, 30%, 92%)' }}>
@@ -40,7 +70,7 @@ export default function LoginPage() {
       <header style={{ background: 'hsl(210, 100%, 20%)' }} className="text-white">
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-white/10">
+            <div className="flex items-center justify-center w-8 h-8" style={{ background: 'rgba(255,255,255,0.1)' }}>
               <svg width="22" height="26" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11 1L1 5v8c0 6.5 4.3 11.8 10 13.5C16.7 24.8 21 19.5 21 13V5L11 1z" fill="white" fillOpacity="0.15" stroke="white" strokeWidth="1.2"/>
                 <path d="M11 3.5L3 7v6c0 5 3.3 9.2 8 10.8C15.7 22.2 19 18 19 13V7L11 3.5z" fill="white" fillOpacity="0.08"/>
@@ -53,25 +83,9 @@ export default function LoginPage() {
               <div className="text-[10px] opacity-70">Peticionamento Eletrônico — 1º Grau</div>
             </div>
           </div>
-          <div className="text-[11px] opacity-80 hidden md:block">
-            Seção Judiciária de Minas Gerais
-          </div>
+          <div className="text-[11px] opacity-80 hidden md:block">Seção Judiciária de Minas Gerais</div>
         </div>
-        <div
-          className="flex items-center gap-4 px-4 py-1 text-[11px]"
-          style={{ background: 'hsl(213, 100%, 28%)' }}
-        >
-          <span className="font-bold cursor-pointer hover:underline">Entrar</span>
-          <span className="cursor-pointer hover:underline">Formas de acesso</span>
-          <span
-            className="cursor-pointer hover:underline"
-            onClick={() => window.location.href = '/consulta-publica'}
-          >
-            Consulta processual
-          </span>
-          <span className="cursor-pointer hover:underline">Manuais</span>
-          <span className="cursor-pointer hover:underline">Fale conosco</span>
-        </div>
+        {perfilSelecionado === 'aluno' ? subHeaderAluno : subHeaderProf}
       </header>
 
       {/* Main */}
@@ -86,13 +100,47 @@ export default function LoginPage() {
         </div>
 
         {/* Login card */}
-        <div className="bg-white border border-border shadow-sm w-full max-w-[360px]">
-          <div
-            className="px-4 py-2 text-white text-[12px] font-bold"
-            style={{ background: 'hsl(210, 100%, 20%)' }}
-          >
+        <div className="bg-white border border-border shadow-sm w-full max-w-[380px]">
+
+          {/* Profile tabs */}
+          <div className="flex border-b border-border">
+            <button
+              type="button"
+              className="flex-1 py-2.5 text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer border-r border-border transition-colors"
+              style={{
+                background: perfilSelecionado === 'aluno' ? 'hsl(210,100%,20%)' : 'hsl(213,20%,96%)',
+                color: perfilSelecionado === 'aluno' ? '#ffffff' : 'hsl(210,20%,40%)',
+              }}
+              onClick={() => { setPerfilSelecionado('aluno'); setError(''); }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12z"/>
+                <path d="M2.4 21.6c0-5.3 4.3-9.6 9.6-9.6s9.6 4.3 9.6 9.6"/>
+              </svg>
+              Advogado / Aluno
+            </button>
+            <button
+              type="button"
+              className="flex-1 py-2.5 text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+              style={{
+                background: perfilSelecionado === 'professor' ? 'hsl(210,100%,20%)' : 'hsl(213,20%,96%)',
+                color: perfilSelecionado === 'professor' ? '#ffffff' : 'hsl(210,20%,40%)',
+              }}
+              onClick={() => { setPerfilSelecionado('professor'); setError(''); }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="1"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                <line x1="12" y1="16" x2="12" y2="16.5" strokeWidth="3" strokeLinecap="round"/>
+              </svg>
+              Magistrado(a)
+            </button>
+          </div>
+
+          <div className="px-4 py-2 text-white text-[12px] font-bold" style={{ background: 'hsl(210, 100%, 20%)' }}>
             IDENTIFICAÇÃO DO USUÁRIO
           </div>
+
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             <div>
               <label className="form-label required">CPF</label>
@@ -112,10 +160,10 @@ export default function LoginPage() {
               <label className="form-label">Tipo de Acesso</label>
               <div className="space-y-1.5 mt-1">
                 <label className="pje-radio">
-                  <input type="radio" name="tipoAcesso" defaultChecked />
+                  <input type="radio" name="tipoAcesso" defaultChecked readOnly />
                   <span>CPF e Senha</span>
                 </label>
-                <label className="pje-radio opacity-50 cursor-not-allowed">
+                <label className="pje-radio" style={{ opacity: 0.45, cursor: 'not-allowed' }}>
                   <input type="radio" name="tipoAcesso" disabled />
                   <span>Certificado Digital <span className="text-[10px] text-muted-foreground">(não disponível neste simulador)</span></span>
                 </label>
@@ -137,19 +185,15 @@ export default function LoginPage() {
 
             {error && <div className="alert-error">{error}</div>}
 
-            <button
-              type="submit"
-              className="btn-primary w-full text-center"
-              disabled={loading}
-            >
+            <button type="submit" className="btn-primary w-full text-center" disabled={loading}>
               {loading ? 'AGUARDE...' : 'ACESSAR'}
             </button>
 
             <div className="flex justify-between pt-1">
-              <button type="button" className="text-[11px] hover:underline" style={{ color: 'hsl(210,100%,20%)' }}>
+              <button type="button" className="text-[11px] hover:underline bg-transparent border-none cursor-pointer" style={{ color: 'hsl(210,100%,20%)' }}>
                 Esqueci minha senha
               </button>
-              <button type="button" className="text-[11px] hover:underline" style={{ color: 'hsl(210,100%,20%)' }}>
+              <button type="button" className="text-[11px] hover:underline bg-transparent border-none cursor-pointer" style={{ color: 'hsl(210,100%,20%)' }}>
                 Primeiro acesso / Cadastro
               </button>
             </div>
@@ -160,18 +204,32 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Info panel */}
-        <div className="mt-6 max-w-[360px] w-full">
-          <div className="bg-white border border-border p-4">
-            <div className="panel-header mb-2">SOBRE O SIMULADOR</div>
-            <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Ambiente exclusivamente educacional</li>
-              <li>Replica a interface do e-Proc TRF1</li>
-              <li>Dados e processos são fictícios</li>
-              <li>Acesso controlado por professor</li>
-            </ul>
+        {/* Info panel — only for aluno tab */}
+        {perfilSelecionado === 'aluno' && (
+          <div className="mt-6 max-w-[380px] w-full">
+            <div className="bg-white border border-border p-4">
+              <div className="panel-header mb-2">SOBRE O SIMULADOR</div>
+              <ul className="text-[11px] text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Ambiente exclusivamente educacional</li>
+                <li>Replica a interface do e-Proc TRF1</li>
+                <li>Dados e processos são fictícios</li>
+                <li>Acesso controlado por professor</li>
+              </ul>
+            </div>
           </div>
-        </div>
+        )}
+
+        {perfilSelecionado === 'professor' && (
+          <div className="mt-6 max-w-[380px] w-full">
+            <div className="bg-white border border-border p-4">
+              <div className="panel-header mb-2">ACESSO RESTRITO</div>
+              <p className="text-[11px] text-muted-foreground">
+                Esta área é exclusiva para professores e magistrados simulados.
+                Para acessar como aluno, selecione a aba "Advogado / Aluno".
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

@@ -13,10 +13,12 @@ export default function PeticaoIncidentalPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const processoId = searchParams.get('processo') ?? '';
+  const tipoParam = searchParams.get('tipo') ?? '';
+  const tarefaParam = searchParams.get('tarefa') ?? '';
 
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [processoSelecionado, setProcessoSelecionado] = useState(processoId);
-  const [tipo, setTipo] = useState('Petição Simples');
+  const [tipo, setTipo] = useState(tipoParam || 'Petição Simples');
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [observacoes, setObservacoes] = useState('');
   const [protocolado, setProtocolado] = useState(false);
@@ -138,6 +140,12 @@ export default function PeticaoIncidentalPage() {
         <div className="bg-white border border-border max-w-2xl">
           <div className="panel-header">PETIÇÃO INCIDENTAL — JUNTADA AOS AUTOS</div>
           <div className="p-4 space-y-4">
+            {tarefaParam && (
+              <div className="alert-warning text-[11px]">
+                <strong>Atividade de Defesa:</strong> Você foi citado(a) em ação judicial e deve protocolizar a contestação.
+                Leia atentamente a petição inicial antes de elaborar sua defesa.
+              </div>
+            )}
             <div>
               <label className="form-label required">Processo</label>
               <select
@@ -169,9 +177,13 @@ export default function PeticaoIncidentalPage() {
                 className="form-field"
                 value={tipo}
                 onChange={e => setTipo(e.target.value)}
+                disabled={!!tipoParam}
               >
                 {tiposPeticaoIncidental.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
+              {tipoParam && (
+                <div className="text-[10px] text-muted-foreground mt-1">Tipo pré-selecionado pela atividade.</div>
+              )}
             </div>
 
             <div>

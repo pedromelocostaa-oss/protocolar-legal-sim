@@ -21,6 +21,7 @@ import GerenciarTarefasPage from './pages/GerenciarTarefasPage';
 import FilaPeticoesPage from './pages/FilaPeticoesPage';
 import CorrecaoPage from './pages/CorrecaoPage';
 import GerenciarAlunosPage from './pages/GerenciarAlunosPage';
+import PeticaoReferenciaPage from './pages/PeticaoReferenciaPage';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -74,6 +75,7 @@ function AppRoutes() {
       <Route path="/processo/:id" element={<RequireAuth><ProcessoDetalhesPage /></RequireAuth>} />
       <Route path="/peticao-incidental" element={<RequireAluno><PeticaoIncidentalPage /></RequireAluno>} />
       <Route path="/intimacoes" element={<RequireAluno><IntimacoesPage /></RequireAluno>} />
+      <Route path="/peticao-referencia/:tarefaId" element={<RequireAluno><PeticaoReferenciaPage /></RequireAluno>} />
       <Route path="/meus-dados" element={<RequireAluno><MeusProcessosPage /></RequireAluno>} />
 
       {/* Professor routes */}
