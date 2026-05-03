@@ -2,30 +2,27 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ProfLayout from '@/components/layout/ProfLayout';
+import { HelpTooltip } from '@/components/prof/HelpTooltip';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
-  getDemoTarefas, getAllDemoProcessos, demoTurmas
+  getDemoTarefas, getAllDemoProcessos, demoTurmas,
 } from '@/data/demoStore';
 import type { Processo, Tarefa } from '@/integrations/supabase/types';
+import {
+  ClipboardList, CheckCircle2, BookOpen, Users, AlertTriangle,
+} from 'lucide-react';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR');
 }
 
-function statusLabel(s: string): { label: string; cls: string } {
-  const map: Record<string, { label: string; cls: string }> = {
-    em_andamento: { label: 'Aguardando Correção', cls: 'badge-warning' },
-    aguardando_resposta: { label: 'Aguardando Resposta', cls: 'badge-info' },
-    com_despacho: { label: 'Corrigido', cls: 'badge-success' },
-    encerrado: { label: 'Encerrado', cls: 'badge-neutral' },
-    devolvido: { label: 'Devolvido', cls: 'badge-danger' },
-  };
-  return map[s] ?? { label: s, cls: 'badge-neutral' };
-}
-
 interface ProcessoComAluno extends Processo {
   nome_aluno?: string;
 }
+
+const DEMO_ALUNOS_LISTA = [
+  { id: 'demo-aluno-1', nome: 'Luiz Cordeiro', cpf: '121.572.976-69' },
+];
 
 export default function DashboardProfessoraPage() {
   const { user } = useAuth();
@@ -33,6 +30,7 @@ export default function DashboardProfessoraPage() {
   const [processos, setProcessos] = useState<ProcessoComAluno[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tarefaSelecionada, setTarefaSelecionada] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -42,6 +40,7 @@ export default function DashboardProfessoraPage() {
       setProcessos(allProc.map(p => ({ ...p, nome_aluno: 'Luiz Cordeiro' })));
       const tarefasProf = getDemoTarefas().filter(t => t.professor_id === user.id);
       setTarefas(tarefasProf);
+      if (tarefasProf.length > 0) setTarefaSelecionada(tarefasProf[0].id);
       setLoading(false);
       return;
     }
@@ -63,7 +62,10 @@ export default function DashboardProfessoraPage() {
           nome_aluno: p.profiles?.nome_completo ?? 'Aluno',
         })));
       }
-      if (tRes.data) setTarefas(tRes.data);
+      if (tRes.data) {
+        setTarefas(tRes.data);
+        if (tRes.data.length > 0) setTarefaSelecionada(tRes.data[0].id);
+      }
       setLoading(false);
     });
   }, [user]);
@@ -72,115 +74,298 @@ export default function DashboardProfessoraPage() {
   const corrigidos = processos.filter(p => p.status === 'com_despacho' || p.status === 'encerrado');
   const tarefasAtivas = tarefas.filter(t => t.ativa);
 
+  // Student status per selected task
+  const alunosStatus = DEMO_ALUNOS_LISTA.map(aluno => {
+    const proc = processos.find(p => p.aluno_id === aluno.id && p.tarefa_id === tarefaSelecionada);
+    return { ...aluno, processo: proc ?? null };
+  });
+
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const primeiroNome = user?.nome_completo?.split(' ')[0] ?? 'Professora';
+
   return (
     <ProfLayout>
-      <div className="p-4">
-        <div className="breadcrumb mb-4">
-          <span>Início</span>
-          <span>›</span>
-          <span>Painel da Professora</span>
+      <div style={{ padding: 24, maxWidth: 1200 }}>
+
+        {/* ── 3.1 Welcome header ── */}
+        <div
+          className="prof-card"
+          style={{
+            borderBottom: '3px solid #1e40af',
+            marginBottom: 24,
+            padding: '20px 24px',
+          }}
+        >
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#1e3a5f' }}>
+            {saudacao}, Prof.ª {primeiroNome}
+          </div>
+          <div style={{ fontSize: 15, color: '#6b7280', marginTop: 4 }}>
+            Turmas ativas: {demoTurmas.map(t => t.nome).join(' · ')}
+          </div>
         </div>
 
-        {/* Welcome */}
-        <div className="bg-white border border-border p-4 mb-4">
-          <div className="text-[14px] font-bold" style={{ color: 'hsl(210,100%,20%)' }}>
-            Painel da Magistrada Simulada — {user?.nome_completo}
-          </div>
-          <div className="text-[12px] text-muted-foreground mt-0.5">
-            Gerencie tarefas, corrija petições e forneça feedback aos alunos.
-          </div>
-          <div className="text-[11px] text-muted-foreground mt-1">
-            Turmas: {demoTurmas.map(t => t.nome).join(' · ')}
-          </div>
+        {/* ── 3.2 Summary cards ── */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: 16,
+            marginBottom: 24,
+          }}
+        >
+          <BigCard
+            label="Petições aguardando correção"
+            value={pendentes.length}
+            color="#f59e0b"
+            Icon={ClipboardList}
+            tooltip="Petições que os alunos enviaram e você ainda não corrigiu."
+            onClick={() => navigate('/prof/peticoes')}
+          />
+          <BigCard
+            label="Petições já corrigidas"
+            value={corrigidos.length}
+            color="#22c55e"
+            Icon={CheckCircle2}
+            tooltip="Petições que você já avaliou e devolveu com nota e comentário."
+            onClick={() => navigate('/prof/peticoes')}
+          />
+          <BigCard
+            label="Atividades abertas para alunos"
+            value={tarefasAtivas.length}
+            color="#1e40af"
+            Icon={BookOpen}
+            tooltip="Atividades que estão visíveis e abertas para os alunos enviarem."
+            onClick={() => navigate('/prof/tarefas')}
+          />
+          <BigCard
+            label="Total de alunos cadastrados"
+            value={DEMO_ALUNOS_LISTA.length}
+            color="#1e40af"
+            Icon={Users}
+            tooltip="Número de alunos cadastrados no sistema."
+            onClick={() => navigate('/prof/alunos')}
+          />
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <SCard label="Petições Pendentes" value={pendentes.length} color="orange" onClick={() => navigate('/prof/peticoes')} />
-          <SCard label="Corrigidas" value={corrigidos.length} color="green" onClick={() => navigate('/prof/peticoes')} />
-          <SCard label="Tarefas Ativas" value={tarefasAtivas.length} color="blue" onClick={() => navigate('/prof/tarefas')} />
-          <SCard label="Alunos" value={2} color="blue" onClick={() => navigate('/prof/alunos')} />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Fila de petições */}
-          <div className="bg-white border border-border">
-            <div className="panel-header flex items-center justify-between">
-              <span>PETIÇÕES RECEBIDAS — AGUARDANDO CORREÇÃO</span>
-              <button className="text-[10px] text-white underline" onClick={() => navigate('/prof/peticoes')}>
-                Ver todas
-              </button>
+        {/* ── 3.3 Call to action ── */}
+        {pendentes.length > 0 ? (
+          <div className="prof-alert-pending" style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <AlertTriangle size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#92400e' }}>
+                Você tem {pendentes.length} petição(ões) aguardando sua correção
+              </span>
             </div>
-            {loading && <div className="p-4 text-center text-[12px] text-muted-foreground">Carregando...</div>}
-            {!loading && pendentes.length === 0 && (
-              <div className="p-4 text-center text-[12px] text-muted-foreground">Nenhuma petição pendente.</div>
-            )}
-            <div className="divide-y divide-border">
-              {pendentes.slice(0, 5).map(p => (
-                <div key={p.id} className="p-3 hover:bg-muted cursor-pointer" onClick={() => navigate(`/prof/correcao/${p.id}`)}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-[12px] font-bold">{p.nome_aluno}</div>
-                      <div className="text-[11px] font-mono">{p.numero_processo}</div>
-                      <div className="text-[11px] text-muted-foreground">{p.classe_processual}</div>
-                    </div>
-                    <div className="text-right">
-                      <span className="badge-warning">Pendente</span>
-                      <div className="text-[10px] text-muted-foreground mt-1">{formatDate(p.created_at)}</div>
-                    </div>
-                  </div>
-                  <button className="btn-primary text-[10px] py-0.5 px-2 mt-2">
-                    ✏ Corrigir
-                  </button>
-                </div>
-              ))}
+            <div style={{ fontSize: 15, color: '#78350f', marginBottom: 14 }}>
+              Os alunos estão esperando o seu feedback.
+            </div>
+            <button
+              className="prof-btn-primary"
+              style={{ fontSize: 15 }}
+              onClick={() => navigate('/prof/peticoes')}
+            >
+              Ir para as Petições Pendentes →
+            </button>
+          </div>
+        ) : (
+          <div className="prof-alert-ok" style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <CheckCircle2 size={20} color="#22c55e" />
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#166534' }}>
+                Tudo em dia! Nenhuma petição aguardando correção.
+              </span>
             </div>
           </div>
+        )}
 
-          {/* Tarefas ativas */}
-          <div className="bg-white border border-border">
-            <div className="panel-header flex items-center justify-between">
-              <span>TAREFAS ATIVAS</span>
-              <div className="flex gap-1">
-                <button className="text-[10px] text-white underline" onClick={() => navigate('/prof/tarefas/nova')}>+ Nova</button>
-                <span className="text-[10px] text-white mx-1">|</span>
-                <button className="text-[10px] text-white underline" onClick={() => navigate('/prof/tarefas')}>Ver todas</button>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 24,
+          }}
+          className="lg:grid-cols-2 grid-cols-1"
+        >
+          {/* ── 3.4 Student status per task ── */}
+          <div className="prof-card" style={{ padding: 0 }}>
+            <div className="prof-card-header">
+              <span className="prof-section-title" style={{ fontSize: 16, marginBottom: 0 }}>
+                Status dos Alunos por Atividade
+                <HelpTooltip text="Veja aqui se cada aluno já enviou a atividade selecionada, qual nota recebeu e qual é o status atual." />
+              </span>
+            </div>
+            <div style={{ padding: '16px 20px 8px 20px' }}>
+              <label className="prof-label" style={{ fontSize: 14, marginBottom: 6 }}>
+                Selecionar atividade:
+              </label>
+              <select
+                className="prof-input"
+                style={{ width: 'auto', minWidth: 280 }}
+                value={tarefaSelecionada}
+                onChange={e => setTarefaSelecionada(e.target.value)}
+              >
+                {tarefas.length === 0 && <option value="">Nenhuma atividade criada</option>}
+                {tarefas.map(t => (
+                  <option key={t.id} value={t.id}>{t.titulo}</option>
+                ))}
+              </select>
+            </div>
+            {loading ? (
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
+                Carregando...
               </div>
+            ) : (
+              <table className="prof-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th>Aluno</th>
+                    <th style={{ textAlign: 'center' }}>Nota</th>
+                    <th>Situação</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alunosStatus.map(a => (
+                    <tr key={a.id}>
+                      <td style={{ fontWeight: 600 }}>{a.nome}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        {a.processo?.nota != null ? (
+                          <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 15 }}>
+                            {Number(a.processo.nota).toFixed(1)}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#9ca3af' }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        {!a.processo ? (
+                          <span style={{
+                            fontSize: 13, padding: '3px 10px', borderRadius: 4,
+                            background: '#f3f4f6', color: '#6b7280', fontWeight: 600,
+                          }}>
+                            Não enviou
+                          </span>
+                        ) : a.processo.status === 'em_andamento' ? (
+                          <span style={{
+                            fontSize: 13, padding: '3px 10px', borderRadius: 4,
+                            background: '#fef3c7', color: '#92400e', fontWeight: 600,
+                          }}>
+                            Aguardando correção
+                          </span>
+                        ) : a.processo.status === 'encerrado' ? (
+                          <span style={{
+                            fontSize: 13, padding: '3px 10px', borderRadius: 4,
+                            background: '#dcfce7', color: '#166534', fontWeight: 600,
+                          }}>
+                            Encerrado
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: 13, padding: '3px 10px', borderRadius: 4,
+                            background: '#dbeafe', color: '#1e40af', fontWeight: 600,
+                          }}>
+                            Corrigido
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {!a.processo ? (
+                          <span style={{ fontSize: 13, color: '#9ca3af' }}>Aguardando aluno</span>
+                        ) : a.processo.status === 'em_andamento' ? (
+                          <button
+                            className="prof-btn-primary"
+                            style={{ height: 36, padding: '0 14px', fontSize: 13, fontWeight: 700 }}
+                            onClick={() => navigate(`/prof/correcao/${a.processo!.id}`)}
+                          >
+                            Corrigir agora
+                          </button>
+                        ) : (
+                          <button
+                            className="prof-btn-secondary"
+                            style={{ height: 36, padding: '0 14px', fontSize: 13, color: '#16a34a', borderColor: '#16a34a' }}
+                            onClick={() => navigate(`/prof/correcao/${a.processo!.id}`)}
+                          >
+                            Ver correção feita
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {alunosStatus.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', color: '#9ca3af', padding: 20, fontSize: 14 }}>
+                        Nenhum aluno cadastrado.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* ── 3.5 Active tasks ── */}
+          <div className="prof-card" style={{ padding: 0 }}>
+            <div className="prof-card-header">
+              <span className="prof-section-title" style={{ fontSize: 16, marginBottom: 0 }}>
+                Atividades Ativas
+              </span>
             </div>
-            {loading && <div className="p-4 text-center text-[12px] text-muted-foreground">Carregando...</div>}
+
+            {loading && (
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
+                Carregando...
+              </div>
+            )}
+
             {!loading && tarefasAtivas.length === 0 && (
-              <div className="p-4 text-center text-[12px] text-muted-foreground">
-                Nenhuma tarefa ativa.{' '}
-                <button className="underline" style={{ color: 'hsl(210,100%,20%)' }} onClick={() => navigate('/prof/tarefas/nova')}>
-                  Criar primeira tarefa
+              <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
+                Nenhuma atividade ativa.{' '}
+                <button
+                  style={{ color: '#1e40af', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}
+                  onClick={() => navigate('/prof/tarefas')}
+                >
+                  Criar primeira atividade
                 </button>
               </div>
             )}
-            <div className="divide-y divide-border">
+
+            <div>
               {tarefasAtivas.map(t => {
                 const prazoDate = t.prazo ? new Date(t.prazo) : null;
                 const vencido = prazoDate && prazoDate < new Date();
                 const enviadas = processos.filter(p => p.tarefa_id === t.id).length;
+                const total = DEMO_ALUNOS_LISTA.length;
                 return (
-                  <div key={t.id} className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="text-[12px] font-semibold">{t.titulo}</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Prazo: {t.prazo ? formatDate(t.prazo) : 'Sem prazo'}
-                          {vencido && <span className="ml-2 text-red-500 font-bold">VENCIDO</span>}
-                        </div>
-                        <div className="text-[11px] mt-0.5">
-                          <span className="badge-info">{enviadas} petição(ões) recebida(s)</span>
-                        </div>
-                      </div>
-                      <button
-                        className="btn-secondary text-[10px] py-0.5 px-2 shrink-0"
-                        onClick={() => navigate('/prof/tarefas')}
-                      >
-                        Gerenciar
-                      </button>
+                  <div
+                    key={t.id}
+                    style={{
+                      padding: '18px 20px',
+                      borderBottom: '1px solid #f3f4f6',
+                    }}
+                  >
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                      {t.titulo}
                     </div>
+                    <div style={{ fontSize: 15, color: vencido ? '#dc2626' : '#6b7280', marginBottom: 8 }}>
+                      Prazo: {t.prazo ? formatDate(t.prazo) : 'Sem prazo'}
+                      {vencido && <span style={{ fontWeight: 700, marginLeft: 8 }}>VENCIDO</span>}
+                    </div>
+                    <div style={{ fontSize: 15, color: '#374151', marginBottom: 12 }}>
+                      <span style={{
+                        background: '#dbeafe', color: '#1e40af',
+                        padding: '2px 10px', borderRadius: 4, fontWeight: 600, fontSize: 14,
+                      }}>
+                        {enviadas} de {total} alunos enviaram
+                      </span>
+                    </div>
+                    <button
+                      className="prof-btn-secondary"
+                      style={{ height: 40, fontSize: 14 }}
+                      onClick={() => navigate('/prof/tarefas')}
+                    >
+                      Gerenciar esta atividade
+                    </button>
                   </div>
                 );
               })}
@@ -192,18 +377,58 @@ export default function DashboardProfessoraPage() {
   );
 }
 
-function SCard({ label, value, color, onClick }: {
-  label: string; value: number;
-  color: 'blue' | 'green' | 'orange' | 'red'; onClick: () => void;
+/* ── Sub-component: BigCard ── */
+function BigCard({
+  label, value, color, Icon, tooltip, onClick,
+}: {
+  label: string;
+  value: number;
+  color: string;
+  Icon: React.ElementType;
+  tooltip: string;
+  onClick: () => void;
 }) {
-  const colors = {
-    blue: 'hsl(210,100%,20%)', green: 'hsl(120,40%,36%)',
-    orange: 'hsl(40,85%,45%)', red: 'hsl(0,70%,45%)',
-  };
   return (
-    <div className="bg-white border border-border p-3 cursor-pointer hover:shadow-sm" onClick={onClick}>
-      <div className="text-[22px] font-bold" style={{ color: colors[color] }}>{value}</div>
-      <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">{label}</div>
+    <div
+      onClick={onClick}
+      className="prof-card"
+      style={{
+        minHeight: 110,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 20,
+        padding: 24,
+        transition: 'box-shadow 0.15s, border-color 0.15s',
+      }}
+      onMouseEnter={e => {
+        const el = e.currentTarget as HTMLDivElement;
+        el.style.boxShadow = '0 4px 16px rgba(0,0,0,0.10)';
+        el.style.borderColor = color;
+      }}
+      onMouseLeave={e => {
+        const el = e.currentTarget as HTMLDivElement;
+        el.style.boxShadow = 'none';
+        el.style.borderColor = '#e5e7eb';
+      }}
+    >
+      <div
+        style={{
+          width: 52, height: 52, borderRadius: 8,
+          background: color + '18',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}
+      >
+        <Icon size={28} color={color} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 40, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 15, color: '#6b7280', marginTop: 4, lineHeight: 1.3 }}>
+          {label}
+          <HelpTooltip text={tooltip} />
+        </div>
+      </div>
     </div>
   );
 }

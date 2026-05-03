@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import ProfLayout from '@/components/layout/ProfLayout';
-import { Upload, Users } from 'lucide-react';
+import { HelpTooltip } from '@/components/prof/HelpTooltip';
+import { Upload, Users, Download } from 'lucide-react';
 import Papa from 'papaparse';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { cpfToEmail, formatCpf, generateOab } from '@/lib/masks';
@@ -26,7 +27,7 @@ const DEMO_ALUNOS = [
 ];
 
 export default function GerenciarAlunosPage() {
-  const { user } = useAuth();
+  const { user: _user } = useAuth();
   const navigate = useNavigate();
   const [alunos] = useState(DEMO_ALUNOS);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -44,12 +45,8 @@ export default function GerenciarAlunosPage() {
       header: true,
       skipEmptyLines: true,
       transformHeader: h => h.trim().toLowerCase()
-        .replace('cpf', 'cpf')
         .replace('nome', 'nome_completo')
-        .replace('nome_completo', 'nome_completo')
-        .replace('matricula', 'matricula')
-        .replace('matrícula', 'matricula')
-        .replace('turma', 'turma'),
+        .replace('matrícula', 'matricula'),
       complete: (results) => setPreview(results.data.slice(0, 20)),
     });
   };
@@ -62,7 +59,12 @@ export default function GerenciarAlunosPage() {
     for (const aluno of preview) {
       try {
         if (!aluno.cpf || !aluno.nome_completo) {
-          resultList.push({ cpf: aluno.cpf ?? '?', nome: aluno.nome_completo ?? '?', status: 'erro', mensagem: 'CPF ou nome ausente' });
+          resultList.push({
+            cpf: aluno.cpf ?? '?',
+            nome: aluno.nome_completo ?? '?',
+            status: 'erro',
+            mensagem: 'CPF ou nome ausente',
+          });
           continue;
         }
 
@@ -70,15 +72,16 @@ export default function GerenciarAlunosPage() {
         const oab = generateOab();
 
         if (DEMO_MODE) {
-          resultList.push({ cpf: cpfFormatado, nome: aluno.nome_completo, status: 'ok', mensagem: 'Usuário demo (não persistido em Supabase)' });
+          resultList.push({
+            cpf: cpfFormatado, nome: aluno.nome_completo,
+            status: 'ok', mensagem: 'Usuário demo (não persistido em banco)',
+          });
           continue;
         }
 
         const email = cpfToEmail(aluno.cpf);
         const { data: authData, error: authError } = await supabase!.auth.admin.createUser({
-          email,
-          password: 'Milton@2025',
-          email_confirm: true,
+          email, password: 'Milton@2025', email_confirm: true,
         });
 
         if (authError) throw authError;
@@ -105,75 +108,166 @@ export default function GerenciarAlunosPage() {
     setImporting(false);
   };
 
+  const baixarModelo = () => {
+    const csv = 'cpf,nome_completo,matricula,turma\n123.456.789-00,João da Silva,2025.1.000001,Processo Civil I\n987.654.321-00,Maria Santos,2025.1.000002,Processo Civil I';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'modelo_importacao_alunos.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <ProfLayout>
-      <div className="p-4">
-        <div className="breadcrumb mb-4">
-          <button onClick={() => navigate('/prof/dashboard')}>Início</button>
-          <span>›</span>
-          <span>Gerenciar Alunos</span>
+      <div style={{ padding: 24, maxWidth: 1200 }}>
+        <div style={{ marginBottom: 24 }}>
+          <div className="prof-page-title">Gerenciar Alunos</div>
+          <div style={{ fontSize: 15, color: '#6b7280' }}>
+            Visualize os alunos cadastrados e importe novos alunos em lote.
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Alunos cadastrados */}
-          <div className="bg-white border border-border">
-            <div className="panel-header flex items-center gap-2">
-              <Users size={14} /> ALUNOS CADASTRADOS
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+
+          {/* ── 7.1 Enrolled students table ── */}
+          <div className="prof-card" style={{ padding: 0 }}>
+            <div className="prof-card-header">
+              <Users size={18} style={{ flexShrink: 0 }} />
+              <span>
+                Alunos Cadastrados
+                <HelpTooltip text="Lista de todos os alunos que têm acesso ao sistema. Para adicionar novos alunos, use a área de importação ao lado." />
+              </span>
             </div>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>CPF</th>
-                  <th>Matrícula</th>
-                  <th>Turma</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alunos.map(a => (
-                  <tr key={a.cpf}>
-                    <td>{a.nome}</td>
-                    <td className="font-mono">{a.cpf}</td>
-                    <td>{a.matricula}</td>
-                    <td>{a.turma}</td>
-                    <td><span className="badge-success">Ativo</span></td>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table className="prof-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Matrícula</th>
+                    <th>Turma</th>
+                    <th>Senha padrão</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="p-3 border-t border-border text-[11px] text-muted-foreground">
-              Senha padrão para novos alunos: <strong className="font-mono">Milton@2025</strong> (troca obrigatória no primeiro acesso)
+                </thead>
+                <tbody>
+                  {alunos.map(a => (
+                    <tr key={a.cpf}>
+                      <td style={{ fontWeight: 600 }}>{a.nome}</td>
+                      <td style={{ fontFamily: 'monospace' }}>{a.cpf}</td>
+                      <td>{a.matricula}</td>
+                      <td>{a.turma}</td>
+                      <td>
+                        <span style={{
+                          fontFamily: 'monospace', fontSize: 13,
+                          color: '#9ca3af', background: '#f9fafb',
+                          padding: '2px 8px', borderRadius: 4,
+                        }}>
+                          Milton@2025
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: '#dcfce7', color: '#166534',
+                          padding: '3px 12px', borderRadius: 4,
+                          fontSize: 13, fontWeight: 700,
+                        }}>
+                          Ativo
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {alunos.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: '#9ca3af', fontSize: 15 }}>
+                        Nenhum aluno cadastrado ainda.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', fontSize: 14, color: '#6b7280' }}>
+              Senha padrão para novos alunos:{' '}
+              <strong style={{ fontFamily: 'monospace', color: '#374151' }}>Milton@2025</strong>
+              {' '}(troca obrigatória no primeiro acesso)
             </div>
           </div>
 
-          {/* Import CSV */}
-          <div className="bg-white border border-border">
-            <div className="panel-header flex items-center gap-2">
-              <Upload size={14} /> IMPORTAR ALUNOS VIA PLANILHA (CSV)
+          {/* ── 7.2 CSV Import area ── */}
+          <div className="prof-card" style={{ padding: 0 }}>
+            <div className="prof-card-header">
+              <Upload size={18} style={{ flexShrink: 0 }} />
+              <span>
+                Adicionar Novos Alunos
+                <HelpTooltip text={'Para cadastrar alunos em lote, baixe o modelo de planilha,\npreencha com os dados e faça o upload aqui.\nCada aluno receberá acesso automático ao sistema.'} />
+              </span>
             </div>
-            <div className="p-4 space-y-4">
-              <div className="alert-info text-[11px]">
-                <strong>Formato esperado do CSV:</strong><br />
+
+            <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* Info box */}
+              <div style={{
+                background: '#eff6ff', border: '1px solid #bfdbfe',
+                borderRadius: 6, padding: '14px 16px', fontSize: 14, color: '#1e40af',
+                lineHeight: 1.6,
+              }}>
+                <strong>Formato esperado do arquivo CSV:</strong><br />
                 Colunas: <code>cpf, nome_completo, matricula, turma</code><br />
-                Separador: vírgula ou ponto-e-vírgula<br />
-                Encoding: UTF-8
+                Separador: vírgula ou ponto-e-vírgula · Encoding: UTF-8
               </div>
 
+              {/* Download model button */}
               <div>
-                <label className="form-label">Arquivo CSV ou Excel</label>
-                <label className="btn-secondary flex items-center gap-2 cursor-pointer w-fit">
-                  <Upload size={14} />
-                  {csvFile ? csvFile.name : 'Selecionar arquivo'}
-                  <input type="file" className="hidden" accept=".csv,.xlsx,.xls" onChange={handleCsvChange} />
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                  Passo 1 — Baixe o modelo de planilha:
+                </div>
+                <button
+                  className="prof-btn-secondary"
+                  style={{ height: 44, padding: '0 20px', fontSize: 14, color: '#16a34a', borderColor: '#16a34a' }}
+                  onClick={baixarModelo}
+                >
+                  <Download size={18} />
+                  Baixar Modelo CSV
+                  <HelpTooltip text={'Baixe este arquivo, abra no Excel ou Google Planilhas e preencha com os\ndados dos alunos. Depois faça o upload aqui.'} />
+                </button>
+              </div>
+
+              {/* File upload */}
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
+                  Passo 2 — Selecione o arquivo preenchido:
+                </div>
+                <label
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+                >
+                  <span
+                    className="prof-btn-secondary"
+                    style={{ height: 52, padding: '0 24px', fontSize: 15 }}
+                  >
+                    <Upload size={20} />
+                    {csvFile ? csvFile.name : 'Selecionar arquivo CSV'}
+                  </span>
+                  <input
+                    type="file"
+                    style={{ display: 'none' }}
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleCsvChange}
+                  />
                 </label>
               </div>
 
+              {/* Preview */}
               {preview.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold mb-1">Prévia ({preview.length} alunos encontrados):</div>
-                  <div className="overflow-x-auto max-h-48 overflow-y-auto border border-border">
-                    <table className="data-table text-[10px]">
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: '#1e3a5f' }}>
+                    Prévia — {preview.length} aluno(s) encontrado(s):
+                  </div>
+                  <div style={{ overflowX: 'auto', maxHeight: 220, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+                    <table className="prof-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr>
                           <th>CPF</th>
@@ -185,7 +279,7 @@ export default function GerenciarAlunosPage() {
                       <tbody>
                         {preview.map((a, i) => (
                           <tr key={i}>
-                            <td className="font-mono">{a.cpf}</td>
+                            <td style={{ fontFamily: 'monospace' }}>{a.cpf}</td>
                             <td>{a.nome_completo}</td>
                             <td>{a.matricula}</td>
                             <td>{a.turma}</td>
@@ -194,50 +288,47 @@ export default function GerenciarAlunosPage() {
                       </tbody>
                     </table>
                   </div>
+
                   <button
-                    className="btn-primary mt-3 flex items-center gap-2"
+                    className="prof-btn-primary"
+                    style={{ height: 52, padding: '0 28px', fontSize: 16, marginTop: 16, width: '100%' }}
                     onClick={importar}
                     disabled={importing}
                   >
-                    <Users size={14} />
-                    {importing ? 'Importando...' : `Importar ${preview.length} Alunos`}
+                    <Users size={20} />
+                    {importing ? 'Importando...' : `Importar ${preview.length} Aluno(s)`}
                   </button>
                 </div>
               )}
 
+              {/* Results */}
               {resultados.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-bold mb-1">Resultado da importação:</div>
-                  <div className="space-y-1">
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8, color: '#1e3a5f' }}>
+                    Resultado da importação:
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {resultados.map((r, i) => (
-                      <div key={i} className={`text-[11px] px-2 py-1 flex items-center justify-between ${r.status === 'ok' ? 'bg-green-50' : 'bg-red-50'}`}>
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '10px 14px', borderRadius: 6, fontSize: 14,
+                          background: r.status === 'ok' ? '#f0fdf4' : '#fef2f2',
+                        }}
+                      >
                         <span>{r.nome} ({r.cpf})</span>
-                        <span className={r.status === 'ok' ? 'badge-success' : 'badge-danger'}>
-                          {r.status === 'ok' ? '✓ OK' : `✗ ${r.mensagem}`}
+                        <span style={{
+                          fontWeight: 700,
+                          color: r.status === 'ok' ? '#166534' : '#dc2626',
+                        }}>
+                          {r.status === 'ok' ? '✓ Importado' : `✗ ${r.mensagem}`}
                         </span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              <div className="border-t border-border pt-3">
-                <div className="text-[11px] font-bold mb-1">Modelo de CSV para download:</div>
-                <button
-                  className="btn-secondary text-[11px]"
-                  onClick={() => {
-                    const csv = 'cpf,nome_completo,matricula,turma\n123.456.789-00,João da Silva,2025.1.000001,Processo Civil I\n987.654.321-00,Maria Santos,2025.1.000002,Processo Civil I';
-                    const blob = new Blob([csv], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'modelo_importacao_alunos.csv';
-                    a.click();
-                  }}
-                >
-                  ↓ Baixar Modelo CSV
-                </button>
-              </div>
             </div>
           </div>
         </div>

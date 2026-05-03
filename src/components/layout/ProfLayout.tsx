@@ -1,16 +1,23 @@
 import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  LayoutDashboard,
+  Users,
+  ClipboardList,
+  FileText,
+  LogOut,
+} from 'lucide-react';
 
 interface ProfLayoutProps {
   children: ReactNode;
 }
 
 const NAV = [
-  { label: 'Dashboard', path: '/prof/dashboard' },
-  { label: 'Turmas e Alunos', path: '/prof/alunos' },
-  { label: 'Tarefas', path: '/prof/tarefas' },
-  { label: 'Petições Recebidas', path: '/prof/peticoes' },
+  { label: 'Painel',              path: '/prof/dashboard',  Icon: LayoutDashboard },
+  { label: 'Alunos e Turmas',     path: '/prof/alunos',     Icon: Users           },
+  { label: 'Atividades',          path: '/prof/tarefas',    Icon: ClipboardList   },
+  { label: 'Petições Recebidas',  path: '/prof/peticoes',   Icon: FileText        },
 ];
 
 export default function ProfLayout({ children }: ProfLayoutProps) {
@@ -28,81 +35,182 @@ export default function ProfLayout({ children }: ProfLayoutProps) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#f3f4f6' }}>
-      {/* Top bar */}
+
+      {/* ── Header ── */}
       <header
-        className="flex items-center justify-between px-4 py-2 border-b"
-        style={{ background: '#ffffff', borderColor: '#e5e7eb' }}
+        style={{
+          minHeight: 64,
+          background: '#ffffff',
+          borderBottom: '1px solid #e5e7eb',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        }}
       >
-        <div className="flex items-center gap-3">
+        {/* Logo + Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div
-            className="w-7 h-7 flex items-center justify-center"
-            style={{ background: '#1e40af' }}
+            style={{
+              width: 40, height: 40, background: '#1e40af', borderRadius: 6,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}
           >
-            <svg width="18" height="20" viewBox="0 0 22 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11 1L1 5v8c0 6.5 4.3 11.8 10 13.5C16.7 24.8 21 19.5 21 13V5L11 1z" fill="white" fillOpacity="0.3" stroke="white" strokeWidth="1.2"/>
-              <text x="11" y="15.5" textAnchor="middle" fill="white" fontSize="7.5" fontWeight="bold" fontFamily="Arial">JF</text>
+            <svg width="22" height="26" viewBox="0 0 22 26" fill="none">
+              <path d="M11 1L1 5v8c0 6.5 4.3 11.8 10 13.5C16.7 24.8 21 19.5 21 13V5L11 1z"
+                fill="white" fillOpacity="0.3" stroke="white" strokeWidth="1.2"/>
+              <text x="11" y="15.5" textAnchor="middle" fill="white" fontSize="7.5"
+                fontWeight="bold" fontFamily="Arial">JF</text>
             </svg>
           </div>
           <div>
-            <div className="text-[13px] font-bold" style={{ color: '#1e3a5f' }}>SIMULADOR e-PROC</div>
-            <div className="text-[10px]" style={{ color: '#6b7280' }}>Sistema de Gestão Acadêmica</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', lineHeight: 1.2 }}>
+              Simulador e-Proc — Área do Professor
+            </div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>Faculdade Milton Campos / Grupo Anima</div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[12px] hidden sm:block" style={{ color: '#374151' }}>
-            Prof. {user?.nome_completo}
+
+        {/* User + Logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <span style={{ fontSize: 15, color: '#374151', fontWeight: 500 }}>
+            {user?.nome_completo ?? 'Professor(a)'}
           </span>
           <button
-            className="text-[11px] px-3 py-1 border cursor-pointer"
-            style={{ color: '#1e40af', borderColor: '#1e40af', background: 'transparent' }}
             onClick={handleLogout}
+            style={{
+              height: 40, padding: '0 20px',
+              border: '2px solid #1e40af', borderRadius: 6,
+              background: 'transparent', color: '#1e40af',
+              fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = '#eff6ff';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
           >
+            <LogOut size={16} />
             Sair
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
+        {/* ── Sidebar ── */}
         <nav
-          className="flex flex-col border-r overflow-y-auto"
-          style={{ width: '180px', minWidth: '180px', background: '#ffffff', borderColor: '#e5e7eb' }}
+          style={{
+            width: 220, minWidth: 220,
+            background: '#ffffff',
+            borderRight: '1px solid #e5e7eb',
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto',
+          }}
         >
-          {NAV.map(item => (
+          <div style={{ padding: '12px 0 4px 0' }}>
+            {NAV.map(item => {
+              const active = isActive(item.path);
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  style={{
+                    width: '100%',
+                    minHeight: 52,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '0 0 0 20px',
+                    fontSize: 15,
+                    fontWeight: active ? 700 : 400,
+                    background: active ? '#1e40af' : 'transparent',
+                    color: active ? '#ffffff' : '#374151',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'background 0.12s, color 0.12s',
+                    borderLeft: active ? '4px solid #1e3a8a' : '4px solid transparent',
+                  }}
+                  onMouseEnter={e => {
+                    if (!active) {
+                      (e.currentTarget as HTMLButtonElement).style.background = '#eff6ff';
+                      (e.currentTarget as HTMLButtonElement).style.color = '#1e40af';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!active) {
+                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLButtonElement).style.color = '#374151';
+                    }
+                  }}
+                >
+                  <item.Icon size={18} style={{ flexShrink: 0 }} />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Separador + Sair */}
+          <div style={{ marginTop: 'auto', borderTop: '1px solid #e5e7eb' }}>
             <button
-              key={item.path}
-              className="text-left px-4 py-2.5 text-[12px] border-b cursor-pointer transition-colors"
-              style={{
-                borderColor: '#f3f4f6',
-                background: isActive(item.path) ? '#1e40af' : 'transparent',
-                color: isActive(item.path) ? '#ffffff' : '#374151',
-                fontWeight: isActive(item.path) ? 700 : 400,
-              }}
-              onClick={() => navigate(item.path)}
-            >
-              {item.label}
-            </button>
-          ))}
-          <div className="mt-auto border-t" style={{ borderColor: '#e5e7eb' }}>
-            <button
-              className="w-full text-left px-4 py-2.5 text-[12px] cursor-pointer"
-              style={{ color: '#dc2626' }}
               onClick={handleLogout}
+              style={{
+                width: '100%',
+                minHeight: 52,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '0 0 0 20px',
+                fontSize: 15,
+                fontWeight: 600,
+                background: 'transparent',
+                color: '#dc2626',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+              }}
             >
-              Sair
+              <LogOut size={18} />
+              Sair do Sistema
             </button>
           </div>
         </nav>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto" style={{ background: '#f9fafb' }}>
+        {/* ── Conteúdo principal ── */}
+        <main
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            background: '#f3f4f6',
+            minWidth: 0,
+          }}
+        >
           {children}
         </main>
       </div>
 
+      {/* ── Footer ── */}
       <footer
-        className="text-center py-1 text-[9px] border-t"
-        style={{ color: '#9ca3af', borderColor: '#e5e7eb', background: 'transparent', opacity: 0.4 }}
+        style={{
+          textAlign: 'center', padding: '6px',
+          fontSize: 10, color: '#9ca3af',
+          borderTop: '1px solid #e5e7eb',
+          background: 'transparent', opacity: 0.5,
+        }}
       >
         Simulador Educacional e-Proc — Não possui vínculo com a Justiça Federal ou TRF1 · Faculdade Milton Campos / Grupo Anima Educação
       </footer>
