@@ -42,8 +42,13 @@ export default function DashboardAlunoPage() {
       setIntimacoes(getDemoIntimacoesAluno(user.id));
       setIntimacoesNaoLidas(getDemoIntimacoesNaoLidas(user.id));
       const tarefasAll = getDemoTarefas();
-      setTarefas(tarefasAll.filter(t => t.turma_id === user.turma_id && t.ativa));
-      setTarefasDefesa(getDemoTarefasDefesa(user.turma_id ?? ''));
+      // Em demo mode não filtramos por turma_id — qualquer tarefa ativa criada
+      // pelo professor deve aparecer para o aluno imediatamente (localStorage compartilhado).
+      // Em produção o Supabase já aplica o filtro de turma via query.
+      setTarefas(tarefasAll.filter(t => t.ativa));
+      setTarefasDefesa(tarefasAll.filter(
+        t => t.ativa && t.tipo_atividade === 'defesa' && t.peticao_referencia != null
+      ));
       return;
     }
 
