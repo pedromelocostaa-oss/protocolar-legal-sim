@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
-import { PlusCircle, AlertCircle, CheckCircle } from 'lucide-react';
+import { PlusCircle, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
