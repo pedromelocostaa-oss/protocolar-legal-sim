@@ -388,11 +388,14 @@ function BigCard({
   tooltip: string;
   onClick: () => void;
 }) {
+  const [tipVisible, setTipVisible] = useState(false);
+
   return (
     <div
       onClick={onClick}
       className="prof-card"
       style={{
+        position: 'relative',
         minHeight: 110,
         cursor: 'pointer',
         display: 'flex',
@@ -412,6 +415,65 @@ function BigCard({
         el.style.borderColor = '#e5e7eb';
       }}
     >
+      {/* ── Help button — canto superior direito, fora do fluxo flex ── */}
+      <div
+        style={{ position: 'absolute', top: 10, right: 10 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onMouseEnter={() => setTipVisible(true)}
+          onMouseLeave={() => setTipVisible(false)}
+          onFocus={() => setTipVisible(true)}
+          onBlur={() => setTipVisible(false)}
+          aria-label="Ajuda"
+          style={{
+            width: 20, height: 20, borderRadius: '50%',
+            background: '#e5e7eb', color: '#6b7280',
+            border: 'none', cursor: 'help',
+            fontSize: 12, fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnterCapture={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = '#1e40af';
+            (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+          }}
+          onMouseLeaveCapture={e => {
+            (e.currentTarget as HTMLButtonElement).style.background = '#e5e7eb';
+            (e.currentTarget as HTMLButtonElement).style.color = '#6b7280';
+          }}
+        >
+          ?
+        </button>
+
+        {tipVisible && (
+          <span
+            role="tooltip"
+            style={{
+              position: 'absolute',
+              right: 26,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: '#1e293b',
+              color: '#fff',
+              padding: '8px 12px',
+              borderRadius: 6,
+              fontSize: 13,
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              maxWidth: 240,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              zIndex: 9999,
+              pointerEvents: 'none',
+            }}
+          >
+            {tooltip}
+          </span>
+        )}
+      </div>
+
+      {/* ── Conteúdo do card — limpo, sem tooltip misturado ── */}
       <div
         style={{
           width: 52, height: 52, borderRadius: 8,
@@ -422,11 +484,10 @@ function BigCard({
       >
         <Icon size={28} color={color} />
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 40, fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: 15, color: '#6b7280', marginTop: 4, lineHeight: 1.3 }}>
+        <div style={{ fontSize: 15, color: '#6b7280', marginTop: 4, lineHeight: 1.4 }}>
           {label}
-          <HelpTooltip text={tooltip} />
         </div>
       </div>
     </div>
