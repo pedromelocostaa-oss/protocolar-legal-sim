@@ -6,7 +6,7 @@ import { PlusCircle, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
-  getDemoIntimacoesNaoLidas, getDemoTarefasDefesa,
+  getDemoIntimacoesNaoLidas,
 } from '@/data/demoStore';
 import type { Processo, Tarefa, Intimacao } from '@/integrations/supabase/types';
 
@@ -38,8 +38,6 @@ export default function DashboardAlunoPage() {
     if (!user) return;
 
     if (DEMO_MODE) {
-      // Função reutilizável — chamada na montagem e nos eventos de storage/focus para
-      // que tarefas criadas pelo professor em outra aba apareçam sem recarregar a página.
       const load = () => {
         setProcessos(getDemoProcessos(user.id));
         setIntimacoes(getDemoIntimacoesAluno(user.id));
@@ -53,16 +51,21 @@ export default function DashboardAlunoPage() {
 
       load();
 
-      // Recarrega quando outra aba altera o localStorage (professor criou tarefa)
+      // Polling a cada 3s — garante que tarefas criadas pelo professor
+      // apareçam automaticamente mesmo que o evento 'storage' não propague
+      // (comportamento observado no Lovable.app)
+      const interval = setInterval(load, 3000);
+
+      // Listeners complementares ao polling
       const onStorage = (e: StorageEvent) => { if (e.key?.startsWith('demo-')) load(); };
-      // Recarrega quando o usuário retorna a esta aba
       const onFocus = () => load();
       const onVisibility = () => { if (!document.hidden) load(); };
-
       window.addEventListener('storage', onStorage);
       window.addEventListener('focus', onFocus);
       document.addEventListener('visibilitychange', onVisibility);
+
       return () => {
+        clearInterval(interval);
         window.removeEventListener('storage', onStorage);
         window.removeEventListener('focus', onFocus);
         document.removeEventListener('visibilitychange', onVisibility);
