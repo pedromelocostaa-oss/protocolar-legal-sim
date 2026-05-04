@@ -20,8 +20,48 @@ function get<T>(key: string, fallback: T): T {
   } catch { return fallback; }
 }
 
+// ---- Cross-tab sync via BroadcastChannel ----
+const CHANNEL_NAME = 'demo-store-sync';
+const bc: BroadcastChannel | null =
+  typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined'
+    ? new BroadcastChannel(CHANNEL_NAME)
+    : null;
+
+type StoreListener = (key: string) => void;
+const listeners = new Set<StoreListener>();
+
+function notify(key: string) {
+  listeners.forEach(l => {
+    try { l(key); } catch { /* noop */ }
+  });
+}
+
+if (bc) {
+  bc.onmessage = (ev) => {
+    const key = ev?.data?.key;
+    if (typeof key === 'string') notify(key);
+  };
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key && Object.values(KEYS).includes(e.key)) notify(e.key);
+  });
+}
+
+export function subscribeDemoStore(listener: StoreListener): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 function set<T>(key: string, value: T) {
   localStorage.setItem(key, JSON.stringify(value));
+  // Notify listeners in this tab immediately
+  notify(key);
+  // Notify other tabs instantly
+  if (bc) {
+    try { bc.postMessage({ key }); } catch { /* noop */ }
+  }
 }
 
 // ---------- TURMAS ----------
