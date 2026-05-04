@@ -6,7 +6,7 @@ import { PlusCircle, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
-  getDemoIntimacoesNaoLidas,
+  getDemoIntimacoesNaoLidas, subscribeDemoStore,
 } from '@/data/demoStore';
 import type { Processo, Tarefa, Intimacao } from '@/integrations/supabase/types';
 
@@ -50,26 +50,8 @@ export default function DashboardAlunoPage() {
       };
 
       load();
-
-      // Polling a cada 3s — garante que tarefas criadas pelo professor
-      // apareçam automaticamente mesmo que o evento 'storage' não propague
-      // (comportamento observado no Lovable.app)
-      const interval = setInterval(load, 3000);
-
-      // Listeners complementares ao polling
-      const onStorage = (e: StorageEvent) => { if (e.key?.startsWith('demo-')) load(); };
-      const onFocus = () => load();
-      const onVisibility = () => { if (!document.hidden) load(); };
-      window.addEventListener('storage', onStorage);
-      window.addEventListener('focus', onFocus);
-      document.addEventListener('visibilitychange', onVisibility);
-
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('storage', onStorage);
-        window.removeEventListener('focus', onFocus);
-        document.removeEventListener('visibilitychange', onVisibility);
-      };
+      const unsubscribe = subscribeDemoStore(load);
+      return unsubscribe;
     }
 
     Promise.all([
