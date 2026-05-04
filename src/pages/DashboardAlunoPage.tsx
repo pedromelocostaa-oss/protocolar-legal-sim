@@ -38,18 +38,35 @@ export default function DashboardAlunoPage() {
     if (!user) return;
 
     if (DEMO_MODE) {
-      setProcessos(getDemoProcessos(user.id));
-      setIntimacoes(getDemoIntimacoesAluno(user.id));
-      setIntimacoesNaoLidas(getDemoIntimacoesNaoLidas(user.id));
-      const tarefasAll = getDemoTarefas();
-      // Em demo mode não filtramos por turma_id — qualquer tarefa ativa criada
-      // pelo professor deve aparecer para o aluno imediatamente (localStorage compartilhado).
-      // Em produção o Supabase já aplica o filtro de turma via query.
-      setTarefas(tarefasAll.filter(t => t.ativa));
-      setTarefasDefesa(tarefasAll.filter(
-        t => t.ativa && t.tipo_atividade === 'defesa' && t.peticao_referencia != null
-      ));
-      return;
+      // Função reutilizável — chamada na montagem e nos eventos de storage/focus para
+      // que tarefas criadas pelo professor em outra aba apareçam sem recarregar a página.
+      const load = () => {
+        setProcessos(getDemoProcessos(user.id));
+        setIntimacoes(getDemoIntimacoesAluno(user.id));
+        setIntimacoesNaoLidas(getDemoIntimacoesNaoLidas(user.id));
+        const tarefasAll = getDemoTarefas();
+        setTarefas(tarefasAll.filter(t => t.ativa));
+        setTarefasDefesa(tarefasAll.filter(
+          t => t.ativa && t.tipo_atividade === 'defesa' && t.peticao_referencia != null
+        ));
+      };
+
+      load();
+
+      // Recarrega quando outra aba altera o localStorage (professor criou tarefa)
+      const onStorage = (e: StorageEvent) => { if (e.key?.startsWith('demo-')) load(); };
+      // Recarrega quando o usuário retorna a esta aba
+      const onFocus = () => load();
+      const onVisibility = () => { if (!document.hidden) load(); };
+
+      window.addEventListener('storage', onStorage);
+      window.addEventListener('focus', onFocus);
+      document.addEventListener('visibilitychange', onVisibility);
+      return () => {
+        window.removeEventListener('storage', onStorage);
+        window.removeEventListener('focus', onFocus);
+        document.removeEventListener('visibilitychange', onVisibility);
+      };
     }
 
     Promise.all([

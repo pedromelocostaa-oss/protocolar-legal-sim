@@ -2,13 +2,14 @@ import type { Processo, Intimacao, Movimentacao, Parte, Documento, Tarefa, Turma
 
 // ---- Persistent demo store using localStorage ----
 
+// v2 keys — força início limpo (dados antigos das chaves sem sufixo são ignorados)
 const KEYS = {
-  processos: 'demo-processos',
-  movimentacoes: 'demo-movimentacoes',
-  intimacoes: 'demo-intimacoes',
-  partes: 'demo-partes',
-  documentos: 'demo-documentos',
-  tarefas: 'demo-tarefas',
+  processos: 'demo-processos-v2',
+  movimentacoes: 'demo-movimentacoes-v2',
+  intimacoes: 'demo-intimacoes-v2',
+  partes: 'demo-partes-v2',
+  documentos: 'demo-documentos-v2',
+  tarefas: 'demo-tarefas-v2',
   turmas: 'demo-turmas',
 };
 
@@ -63,7 +64,10 @@ Belo Horizonte, 01 de abril de 2025.
 Dr(a). Advogado(a) Simulado(a)
 OAB/MG nº Sim.00001`;
 
-const defaultTarefas: Tarefa[] = [
+// Padrão vazio — o professor cria as tarefas via interface
+const defaultTarefas: Tarefa[] = [];
+
+const _unusedTarefas: Tarefa[] = [
   {
     id: 'demo-tarefa-1',
     titulo: 'Petição Inicial — Responsabilidade Civil',
@@ -137,25 +141,7 @@ export function getDemoTarefasDefesa(turmaId: string): Tarefa[] {
 }
 
 // ---------- PROCESSOS ----------
-const defaultProcessos: Processo[] = [
-  {
-    id: 'demo-proc-1',
-    numero_processo: '1000042-33.2025.4.01.3800',
-    aluno_id: 'demo-aluno-1',
-    tarefa_id: 'demo-tarefa-1',
-    classe_processual: 'Procedimento Comum Cível',
-    assunto: 'Responsabilidade Civil — Indenização por Dano Moral e Material',
-    valor_causa: 18500,
-    vara: '1ª Vara Federal de Belo Horizonte',
-    segredo_justica: false,
-    prioridade: null,
-    status: 'com_despacho',
-    nota: 8.5,
-    feedback_professor: 'Boa petição! A causa de pedir está bem fundamentada. Atenção ao pedido de tutela antecipada — especifique melhor o periculum in mora. Nota: 8,5.',
-    created_at: '2025-03-10T10:30:00Z',
-    updated_at: '2025-03-12T14:00:00Z',
-  },
-];
+const defaultProcessos: Processo[] = [];
 
 export function getDemoProcessos(alunoId: string): Processo[] {
   return get<Processo[]>(KEYS.processos, defaultProcessos).filter(p => p.aluno_id === alunoId);
@@ -174,10 +160,7 @@ export function saveDemoProcesso(processo: Processo) {
 }
 
 // ---------- PARTES ----------
-const defaultPartes: Parte[] = [
-  { id: 'demo-parte-1', processo_id: 'demo-proc-1', polo: 'ativo', tipo_pessoa: 'fisica', nome: 'João da Silva', cpf_cnpj: '111.222.333-44', rg: null, data_nascimento: null, endereco: { rua: 'Rua das Flores', numero: '100', bairro: 'Centro', cidade: 'Belo Horizonte', estado: 'MG', cep: '30100-000' }, email: 'joao@email.com', telefone: '(31) 99999-1234' },
-  { id: 'demo-parte-2', processo_id: 'demo-proc-1', polo: 'passivo', tipo_pessoa: 'fisica', nome: 'Carlos Pereira', cpf_cnpj: '555.666.777-88', rg: null, data_nascimento: null, endereco: null, email: null, telefone: null },
-];
+const defaultPartes: Parte[] = [];
 
 export function getDemoPartes(processoId: string): Parte[] {
   return get<Parte[]>(KEYS.partes, defaultPartes).filter(p => p.processo_id === processoId);
@@ -193,10 +176,7 @@ export function saveDemoPartes(partes: Parte[]) {
 }
 
 // ---------- MOVIMENTAÇÕES ----------
-const defaultMovimentacoes: Movimentacao[] = [
-  { id: 'demo-mov-1', processo_id: 'demo-proc-1', tipo: 'distribuicao', descricao: 'Petição inicial protocolada e distribuída à 1ª Vara Federal de Belo Horizonte', autor_id: 'demo-aluno-1', created_at: '2025-03-10T10:30:00Z' },
-  { id: 'demo-mov-2', processo_id: 'demo-proc-1', tipo: 'despacho', descricao: 'Despacho da professora: Boa petição! A causa de pedir está bem fundamentada. Nota: 8,5', autor_id: 'demo-prof-1', created_at: '2025-03-12T14:00:00Z' },
-];
+const defaultMovimentacoes: Movimentacao[] = [];
 
 export function getDemoMovimentacoes(processoId: string): Movimentacao[] {
   return get<Movimentacao[]>(KEYS.movimentacoes, defaultMovimentacoes)
@@ -211,19 +191,7 @@ export function saveDemoMovimentacao(mov: Movimentacao) {
 }
 
 // ---------- INTIMAÇÕES ----------
-const defaultIntimacoesAluno: Intimacao[] = [
-  {
-    id: 'demo-intim-1',
-    processo_id: 'demo-proc-1',
-    destinatario_id: 'demo-aluno-1',
-    remetente_id: 'demo-prof-1',
-    texto: 'Processo nº 1000042-33.2025.4.01.3800 — Despacho da Juíza:\n\nExcelente trabalho na elaboração da petição inicial. A causa de pedir está bem estruturada e os pedidos são claros.\n\nSugestão de melhoria: na próxima petição, detalhe melhor o requisito do periculum in mora no pedido de tutela antecipada, citando a jurisprudência do STJ.\n\nNota atribuída: 8,5 (oito vírgula cinco).\n\nDr(a). Luiz Cordeiro, fique à vontade para protocolar eventual recurso.',
-    prazo_resposta: '2025-03-19T23:59:59Z',
-    lida: false,
-    data_ciencia: null,
-    created_at: '2025-03-12T14:00:00Z',
-  },
-];
+const defaultIntimacoesAluno: Intimacao[] = [];
 
 export function getDemoIntimacoesAluno(alunoId: string): Intimacao[] {
   return get<Intimacao[]>(KEYS.intimacoes, defaultIntimacoesAluno)
