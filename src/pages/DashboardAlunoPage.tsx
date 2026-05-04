@@ -6,7 +6,7 @@ import { PlusCircle, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
-  getDemoIntimacoesNaoLidas,
+  getDemoIntimacoesNaoLidas, subscribeDemoStore,
 } from '@/data/demoStore';
 import type { Processo, Tarefa, Intimacao } from '@/integrations/supabase/types';
 
