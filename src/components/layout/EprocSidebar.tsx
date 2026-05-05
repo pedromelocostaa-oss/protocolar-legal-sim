@@ -103,7 +103,6 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
             active={startsWith('/peticao') || startsWith('/processo')}
           >
             <SubItem label="Petição Inicial (Nova Ação)" path="/peticao-inicial" active={at('/peticao-inicial')} />
-            <SubItem label="Petição Incidental" path="/peticao-incidental" active={at('/peticao-incidental')} />
           </ExpandableItem>
 
           <ExpandableItem
@@ -123,13 +122,6 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
             badge={intimacoesCount}
           />
 
-          <SidebarItem
-            label="Consulta Processual"
-            path="/consulta-publica"
-            active={at('/consulta-publica')}
-          />
-
-          <SidebarItem label="Meus Dados" path="/meus-dados" active={at('/meus-dados')} />
         </>
       )}
 
