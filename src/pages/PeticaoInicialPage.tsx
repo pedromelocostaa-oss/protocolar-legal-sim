@@ -238,7 +238,6 @@ function AssuntoNode({
           {isSelected ? '✓' : '○'}
         </span>
         <span style={{ flex: 1 }}>{node.descricao}</span>
-        <span style={{ color: '#9ca3af', fontSize: 10 }}>({node.codigo})</span>
       </div>
     );
   }
