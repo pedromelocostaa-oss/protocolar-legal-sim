@@ -21,6 +21,73 @@ function countLeaves(node: NodoAssunto): number {
   if (!node.subitens || node.subitens.length === 0) return 1;
   return node.subitens.reduce((acc, s) => acc + countLeaves(s), 0);
 }
+
+function ConsultarInativoBtn() {
+  const [hover, setHover] = useState(false);
+  return (
+    <span
+      style={{ position: 'relative', display: 'inline-block' }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <button
+        type="button"
+        disabled
+        style={{
+          height: 32,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '0 12px',
+          background: '#94a3b8',
+          color: '#fff',
+          border: '1px solid #64748b',
+          borderRadius: 2,
+          fontSize: 11,
+          fontWeight: 600,
+          cursor: 'not-allowed',
+          opacity: 0.85,
+        }}
+      >
+        <Search size={12} /> Consultar
+      </button>
+      {hover && (
+        <div
+          role="tooltip"
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            marginTop: 6,
+            background: '#1e293b',
+            color: '#fff',
+            padding: '8px 10px',
+            borderRadius: 4,
+            fontSize: 11,
+            lineHeight: 1.4,
+            width: 280,
+            zIndex: 50,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: -5,
+              left: 16,
+              width: 10,
+              height: 10,
+              background: '#1e293b',
+              transform: 'rotate(45deg)',
+            }}
+          />
+          Botão inativo: não consulta CPFs na base do governo. Mantido na tela apenas para você entender o layout do PJe.
+        </div>
+      )}
+    </span>
+  );
+}
 import type { Tarefa } from '@/integrations/supabase/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -1449,15 +1516,7 @@ export default function PeticaoInicialPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    style={{ ...BTN_PRIMARY, height: 32 }}
-                    onClick={consultarAutora}
-                    disabled={consultaAutoraEstado === 'buscando'}
-                  >
-                    {consultaAutoraEstado === 'buscando'
-                      ? <><Loader2 size={12} className="animate-spin" /> Buscando...</>
-                      : <><Search size={12} /> Consultar</>}
-                  </button>
+                  <ConsultarInativoBtn />
                   <button
                     style={TOOLBAR_BTN}
                     onClick={() => {
@@ -1667,15 +1726,7 @@ export default function PeticaoInicialPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    style={{ ...BTN_PRIMARY, height: 32 }}
-                    onClick={consultarReu}
-                    disabled={consultaReuEstado === 'buscando'}
-                  >
-                    {consultaReuEstado === 'buscando'
-                      ? <><Loader2 size={12} className="animate-spin" /> Buscando...</>
-                      : <><Search size={12} /> Consultar</>}
-                  </button>
+                  <ConsultarInativoBtn />
                   <button
                     style={TOOLBAR_BTN}
                     onClick={() => {
