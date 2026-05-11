@@ -221,7 +221,7 @@ function AssuntoNode({
   onSelectLeaf: (n: NodoAssunto) => void;
   selectedLeaf: NodoAssunto | null;
 }) {
-  const [expanded, setExpanded] = useState(level < 1);
+  const [expanded, setExpanded] = useState(false);
   const isLeaf = !node.subitens || node.subitens.length === 0;
   const isSelected = isLeaf && selected.some(s => s.codigo === node.codigo);
   const isDetailActive = selectedLeaf?.codigo === node.codigo;
@@ -247,21 +247,35 @@ function AssuntoNode({
     );
   }
 
+  const isTop = level === 0;
+  const leafCount = isTop ? countLeaves(node) : 0;
+
   return (
     <div>
       <div
         onClick={() => setExpanded(e => !e)}
         style={{
-          paddingLeft: pl, paddingTop: 6, paddingBottom: 6, paddingRight: 8,
-          cursor: 'pointer', fontWeight: 600, fontSize: 12,
-          background: level === 0 ? '#f1f5f9' : '#f9fafb',
+          paddingLeft: pl, paddingTop: isTop ? 7 : 6, paddingBottom: isTop ? 7 : 6, paddingRight: 8,
+          cursor: 'pointer', fontWeight: isTop ? 700 : 600, fontSize: 12,
+          background: isTop ? '#fff' : '#f9fafb',
           borderBottom: '1px solid #e5e7eb',
-          display: 'flex', alignItems: 'center', gap: 4,
+          display: 'flex', alignItems: 'center', gap: 6,
           color: '#1e3a5f',
+          letterSpacing: isTop ? 0.2 : 0,
         }}
       >
-        {expanded ? <ChevronDown size={13} style={{ flexShrink: 0 }} /> : <ChevronRight size={13} style={{ flexShrink: 0 }} />}
-        {node.descricao}
+        {expanded
+          ? <ChevronDown size={12} style={{ flexShrink: 0, color: '#6b7280' }} />
+          : <ChevronRight size={12} style={{ flexShrink: 0, color: '#6b7280' }} />}
+        {isTop && <Folder size={13} style={{ flexShrink: 0, color: '#ca8a04', fill: '#fde68a' }} />}
+        <span>
+          {isTop ? node.descricao.toUpperCase() : node.descricao}
+          {isTop && (
+            <span style={{ color: '#6b7280', fontWeight: 400, marginLeft: 6 }}>
+              ({String(leafCount).padStart(2, '0')})
+            </span>
+          )}
+        </span>
       </div>
       {expanded && node.subitens?.map(sub => (
         <AssuntoNode key={sub.codigo} node={sub} level={level + 1}
