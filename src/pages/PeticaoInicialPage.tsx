@@ -1726,15 +1726,7 @@ export default function PeticaoInicialPage() {
                 )}
 
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    style={{ ...BTN_PRIMARY, height: 32 }}
-                    onClick={consultarReu}
-                    disabled={consultaReuEstado === 'buscando'}
-                  >
-                    {consultaReuEstado === 'buscando'
-                      ? <><Loader2 size={12} className="animate-spin" /> Buscando...</>
-                      : <><Search size={12} /> Consultar</>}
-                  </button>
+                  <ConsultarInativoBtn />
                   <button
                     style={TOOLBAR_BTN}
                     onClick={() => {
