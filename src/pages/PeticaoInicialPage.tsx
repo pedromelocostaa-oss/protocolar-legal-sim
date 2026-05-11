@@ -3,35 +3,59 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
 import {
-  classesProcessuais, prioridades, tiposDocumento,
-  ritos, tiposAcaoJEF, niveisSigno, forosJFMG, entidadesFederais, arvoreAssuntos,
+  areasTJMG, niveisSigno, siglosDocumento, tribunaisTJMG,
+  tiposPessoa, tiposDocOutros, sexos, estadosCivis,
+  identidadesGenero, orientacoesSexuais, racasEtnia,
+  tiposDeficiencia, niveisEscolaridade, justicaGratuitaOpcoes,
+  arvoreAssuntos,
 } from '@/data/classesAssuntos';
-import type { AssuntoCNJ, NodoAssunto, EntidadeFederal } from '@/data/classesAssuntos';
+import type { AssuntoCNJ, NodoAssunto } from '@/data/classesAssuntos';
 import { sortearVara } from '@/data/varas';
 import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } from '@/lib/masks';
 import { generateProcessNumber } from '@/lib/cnj';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, getDemoTarefas } from '@/data/demoStore';
-import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, ChevronUp } from 'lucide-react';
+import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2 } from 'lucide-react';
 import type { Tarefa } from '@/integrations/supabase/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Parte {
   polo: 'ativo' | 'passivo';
-  tipo_pessoa: 'fisica' | 'juridica';
+  tipo_pessoa: string;
   nome: string;
   cpf_cnpj: string;
-  rg: string;
-  data_nascimento: string;
-  email: string;
-  telefone: string;
+  semCpf: boolean;
+  outroDocTipo: string;
+  outroDocNum: string;
+  nomeSocial: string;
+  sexo: string;
+  estadoCivil: string;
+  dataNascimento: string;
+  profissao: string;
+  ehLGBTI: boolean;
+  identidadeGenero: string;
+  orientacaoSexual: string;
+  naturalidade: string;
+  nomeMae: string;
+  nomePai: string;
+  temDeficiencia: boolean;
+  tipoDeficiencia: string;
+  gestante: boolean;
+  escolaridade: string;
+  racaEtnia: string;
+  dependentes: string;
   cep: string;
   logradouro: string;
   numero: string;
+  complemento: string;
   bairro: string;
   cidade: string;
   estado: string;
+  email: string;
+  telefone: string;
+  justicaGratuita: string;
+  qualificacao: string;
 }
 
 interface DocumentoForm {
@@ -43,40 +67,54 @@ interface DocumentoForm {
 }
 
 interface InfoAdicionais {
-  tutelaUrgencia: boolean;
-  gratuidadeJustica: boolean;
-  pedidoUrgente: boolean;
-  beneficiarioJG: boolean;
-  plenarioVirtual: boolean;
-  liminarMS: boolean;
-  antecipacaoTutela: boolean;
-  medidaCautelar: boolean;
+  doencaGrave: boolean;
+  liminarAnticipacao: boolean;
+  intervencaoMP: boolean;
+  idoso: boolean;
+  deficiencia: boolean;
+  criancaAdolescente: boolean;
+  lei14289: boolean;
+  juizo100Digital: boolean;
+  peticaoUrgente: boolean;
 }
 
+interface ResultadoBusca {
+  id: string;
+  cpf: string;
+  nome: string;
+  infoExtras: string;
+}
+
+interface ConsultaQuery {
+  tipoPessoa: string;
+  cpf: string;
+  semCpf: boolean;
+  outroDocTipo: string;
+  outroDocNum: string;
+  nome: string;
+}
+
+type ConsultaEstado = 'idle' | 'buscando' | 'resultado' | 'nao_encontrado' | 'novo_cadastro';
+
 interface FormData {
-  // Step 1 — Informações do processo
-  foro: string;
-  rito: string;
+  tribunal: string;
+  area: string;
   classe: string;
-  tipoAcaoJEF: string;
-  valorCausa: string;
-  renunciaExcedente: boolean;
   nivelSigilo: string;
+  tipoJustica: string;
+  valorCausa: string;
   processoOriginario: string;
   juizo: string;
-  outrosAdvogados: string;
-  prioridade: string;
+  naoSeAplica: boolean;
+  remeterPlantao: boolean;
+  apoioIA: boolean;
   tarefaId: string;
-  // Step 2 — Assuntos
   assuntos: AssuntoCNJ[];
-  // Step 3 — Partes autoras
   partesAutoras: Parte[];
-  // Step 4 — Partes rés
   partesReus: Parte[];
-  // Step 5 — Documentos
   documentos: DocumentoForm[];
+  docsConfirmados: boolean;
   infoAdicionais: InfoAdicionais;
-  // Resultado
   numeroProcesso: string;
   varaProtocolo: string;
   dataProtocolo: string;
@@ -85,89 +123,113 @@ interface FormData {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STEP_NAMES = [
-  'Informações do processo',
+  'Informações do Processo',
   'Assuntos',
-  'Partes Autoras',
-  'Partes Rés',
+  'Partes ( Requerentes )',
+  'Partes ( Requeridos )',
   'Documentos',
   'Confirmar Ajuizamento',
 ];
 
-const INFO_ADICIONAIS_LABELS: Record<keyof InfoAdicionais, string> = {
-  tutelaUrgencia:    'Pedido de tutela de urgência ou cautelar (art. 300, CPC)',
-  gratuidadeJustica: 'Requerimento de gratuidade da justiça (art. 98, CPC)',
-  pedidoUrgente:     'Processo urgente — prioridade de tramitação',
-  beneficiarioJG:    'Autor é beneficiário da gratuidade da justiça',
-  plenarioVirtual:   'Plenário virtual (TRF-1)',
-  liminarMS:         'Liminar em Mandado de Segurança',
-  antecipacaoTutela: 'Antecipação de tutela (art. 294, CPC)',
-  medidaCautelar:    'Medida cautelar',
-};
+const INFO_ADICIONAIS_LABELS: [keyof InfoAdicionais, string][] = [
+  ['doencaGrave',       'Doença grave'],
+  ['liminarAnticipacao','Liminar/Antecipação de Tutela'],
+  ['intervencaoMP',     'Intervenção do Ministério Público'],
+  ['idoso',             'Idoso (60+)'],
+  ['deficiencia',       'Deficiência'],
+  ['criancaAdolescente','Criança e Adolescente'],
+  ['lei14289',          'LEI 14.289'],
+  ['juizo100Digital',   'Juízo 100% Digital'],
+  ['peticaoUrgente',    'Petição Urgente'],
+];
 
-// Mock CPF lookup (demo) — real system would call Receita Federal
-const CPF_MOCK_DB: Record<string, { nome: string; dataNasc: string }> = {
-  '121.572.976-69': { nome: 'Luiz Cordeiro',             dataNasc: '1985-03-15' },
-  '000.000.001-91': { nome: 'Maria da Silva Santos',      dataNasc: '1972-07-22' },
-  '111.222.333-44': { nome: 'João Carlos Oliveira',       dataNasc: '1990-11-08' },
-  '123.456.789-09': { nome: 'Ana Paula Ferreira',         dataNasc: '1995-05-30' },
-  '987.654.321-00': { nome: 'Carlos Eduardo Nascimento',  dataNasc: '1968-12-01' },
+const CPF_MOCK_DB: Record<string, { nome: string; dataNasc: string; infoExtras: string }> = {
+  '121.572.976-69': { nome: 'Luiz Cordeiro',            dataNasc: '1985-03-15', infoExtras: 'Belo Horizonte — MG' },
+  '000.000.001-91': { nome: 'Maria da Silva Santos',     dataNasc: '1972-07-22', infoExtras: 'Contagem — MG' },
+  '111.222.333-44': { nome: 'João Carlos Oliveira',      dataNasc: '1990-11-08', infoExtras: 'Uberlândia — MG' },
+  '123.456.789-09': { nome: 'Ana Paula Ferreira',        dataNasc: '1995-05-30', infoExtras: 'Juiz de Fora — MG' },
+  '987.654.321-00': { nome: 'Carlos Eduardo Nascimento', dataNasc: '1968-12-01', infoExtras: 'Montes Claros — MG' },
 };
 
 const emptyParte = (polo: 'ativo' | 'passivo'): Parte => ({
   polo,
-  tipo_pessoa: polo === 'ativo' ? 'fisica' : 'juridica',
-  nome: '', cpf_cnpj: '', rg: '', data_nascimento: '',
-  email: '', telefone: '', cep: '',
-  logradouro: '', numero: '', bairro: '', cidade: '', estado: 'MG',
+  tipo_pessoa: 'Pessoa Física',
+  nome: '', cpf_cnpj: '', semCpf: false,
+  outroDocTipo: '', outroDocNum: '',
+  nomeSocial: '', sexo: '', estadoCivil: '', dataNascimento: '', profissao: '',
+  ehLGBTI: false, identidadeGenero: '', orientacaoSexual: '',
+  naturalidade: '', nomeMae: '', nomePai: '',
+  temDeficiencia: false, tipoDeficiencia: '', gestante: false,
+  escolaridade: '', racaEtnia: '', dependentes: '',
+  cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'MG',
+  email: '', telefone: '',
+  justicaGratuita: 'Não',
+  qualificacao: 'REQUERIDO',
 });
 
-const emptyDocumento = (tipo = 'Certidão'): DocumentoForm => ({
-  tipo, arquivo: null, nomeArquivo: '', sigilo: 'publico', collapsed: false,
+const emptyQuery = (): ConsultaQuery => ({
+  tipoPessoa: 'Pessoa Física', cpf: '', semCpf: false,
+  outroDocTipo: '', outroDocNum: '', nome: '',
+});
+
+const emptyDocumento = (): DocumentoForm => ({
+  tipo: '', arquivo: null, nomeArquivo: '', sigilo: 'Público', collapsed: false,
 });
 
 const emptyInfoAdicionais = (): InfoAdicionais => ({
-  tutelaUrgencia: false, gratuidadeJustica: false, pedidoUrgente: false,
-  beneficiarioJG: false, plenarioVirtual: false, liminarMS: false,
-  antecipacaoTutela: false, medidaCautelar: false,
+  doencaGrave: false, liminarAnticipacao: false, intervencaoMP: false,
+  idoso: false, deficiencia: false, criancaAdolescente: false,
+  lei14289: false, juizo100Digital: false, peticaoUrgente: false,
 });
 
 const initialForm = (tarefaId: string): FormData => ({
-  foro: 'SJMG-BH', rito: '', classe: '', tipoAcaoJEF: '',
-  valorCausa: '', renunciaExcedente: false, nivelSigilo: 'publico',
-  processoOriginario: '', juizo: '', outrosAdvogados: '',
-  prioridade: '', tarefaId,
+  tribunal: tribunaisTJMG[0],
+  area: '',
+  classe: '',
+  nivelSigilo: niveisSigno[0],
+  tipoJustica: 'Estadual',
+  valorCausa: '',
+  processoOriginario: '',
+  juizo: '',
+  naoSeAplica: false,
+  remeterPlantao: false,
+  apoioIA: false,
+  tarefaId,
   assuntos: [],
   partesAutoras: [],
   partesReus: [],
-  documentos: [{ tipo: 'Petição Inicial', arquivo: null, nomeArquivo: '', sigilo: 'publico', collapsed: false }],
+  documentos: [{ tipo: 'Petição Inicial', arquivo: null, nomeArquivo: '', sigilo: 'Público', collapsed: false }],
+  docsConfirmados: false,
   infoAdicionais: emptyInfoAdicionais(),
   numeroProcesso: '', varaProtocolo: '', dataProtocolo: '',
 });
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-/** Recursive tree node for Step 2 */
 function AssuntoNode({
-  node, level, selected, onToggle,
+  node, level, selected, onToggle, onSelectLeaf, selectedLeaf,
 }: {
   node: NodoAssunto;
   level: number;
   selected: AssuntoCNJ[];
   onToggle: (a: AssuntoCNJ) => void;
+  onSelectLeaf: (n: NodoAssunto) => void;
+  selectedLeaf: NodoAssunto | null;
 }) {
   const [expanded, setExpanded] = useState(level < 1);
   const isLeaf = !node.subitens || node.subitens.length === 0;
   const isSelected = isLeaf && selected.some(s => s.codigo === node.codigo);
+  const isDetailActive = selectedLeaf?.codigo === node.codigo;
   const pl = level * 18 + 8;
 
   if (isLeaf) {
     return (
       <div
-        onClick={() => onToggle({ codigo: node.codigo, descricao: node.descricao, area: node.area })}
+        onClick={() => { onSelectLeaf(node); onToggle({ codigo: node.codigo, descricao: node.descricao, area: node.area }); }}
         style={{
           paddingLeft: pl, paddingTop: 5, paddingBottom: 5, paddingRight: 8,
           cursor: 'pointer', fontSize: 12, borderBottom: '1px solid #f3f4f6',
-          background: isSelected ? '#dbeafe' : 'transparent',
+          background: isDetailActive ? '#eff6ff' : isSelected ? '#dbeafe' : 'transparent',
           color: isSelected ? '#1e40af' : '#374151',
           display: 'flex', alignItems: 'center', gap: 6,
         }}
@@ -175,8 +237,8 @@ function AssuntoNode({
         <span style={{ width: 14, fontWeight: 700, color: isSelected ? '#1e40af' : '#9ca3af' }}>
           {isSelected ? '✓' : '○'}
         </span>
-        <span>{node.descricao}</span>
-        <span style={{ marginLeft: 'auto', color: '#9ca3af', fontSize: 11 }}>({node.codigo})</span>
+        <span style={{ flex: 1 }}>{node.descricao}</span>
+        <span style={{ color: '#9ca3af', fontSize: 10 }}>({node.codigo})</span>
       </div>
     );
   }
@@ -194,28 +256,22 @@ function AssuntoNode({
           color: '#1e3a5f',
         }}
       >
-        {expanded
-          ? <ChevronDown size={13} style={{ flexShrink: 0 }} />
-          : <ChevronRight size={13} style={{ flexShrink: 0 }} />}
+        {expanded ? <ChevronDown size={13} style={{ flexShrink: 0 }} /> : <ChevronRight size={13} style={{ flexShrink: 0 }} />}
         {node.descricao}
       </div>
       {expanded && node.subitens?.map(sub => (
-        <AssuntoNode key={sub.codigo} node={sub} level={level + 1} selected={selected} onToggle={onToggle} />
+        <AssuntoNode key={sub.codigo} node={sub} level={level + 1}
+          selected={selected} onToggle={onToggle}
+          onSelectLeaf={onSelectLeaf} selectedLeaf={selectedLeaf} />
       ))}
     </div>
   );
 }
 
-/** Step panel wrapper */
 function StepPanel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ background: '#fff', border: '1px solid #d1d5db' }}>
-      {children}
-    </div>
-  );
+  return <div style={{ background: '#fff', border: '1px solid #d1d5db' }}>{children}</div>;
 }
 
-/** Summary row for Step 6 */
 function SumRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <tr>
@@ -241,18 +297,24 @@ export default function PeticaoInicialPage() {
 
   const [form, setForm] = useState<FormData>(() => initialForm(searchParams.get('tarefa') ?? ''));
 
-  // ── Step 3: Partes Autoras draft & CPF lookup ──
-  const [draftAutora, setDraftAutora] = useState<Parte>(emptyParte('ativo'));
-  const [cpfBuscaEstado, setCpfBuscaEstado] = useState<'idle' | 'carregando' | 'encontrado' | 'nao_encontrado'>('idle');
-
-  // ── Step 4: Partes Réus draft & autocomplete ──
-  const [reuSearch, setReuSearch] = useState('');
-  const [reuSugestoes, setReuSugestoes] = useState<EntidadeFederal[]>([]);
-  const [draftReu, setDraftReu] = useState<Parte>(emptyParte('passivo'));
-  const [showReuSugestoes, setShowReuSugestoes] = useState(false);
-
-  // ── Step 2: assuntos search ──
+  // Step 2 state
   const [assuntoSearch, setAssuntoSearch] = useState('');
+  const [assuntoModo, setAssuntoModo] = useState<'assunto' | 'glossario'>('assunto');
+  const [selectedLeaf, setSelectedLeaf] = useState<NodoAssunto | null>(null);
+
+  // Step 3 state
+  const [queryAutora, setQueryAutora] = useState<ConsultaQuery>(emptyQuery());
+  const [consultaAutoraEstado, setConsultaAutoraEstado] = useState<ConsultaEstado>('idle');
+  const [resultadosAutora, setResultadosAutora] = useState<ResultadoBusca[]>([]);
+  const [draftAutora, setDraftAutora] = useState<Parte>(emptyParte('ativo'));
+  const [showCadastroAutora, setShowCadastroAutora] = useState(false);
+
+  // Step 4 state
+  const [queryReu, setQueryReu] = useState<ConsultaQuery>(emptyQuery());
+  const [consultaReuEstado, setConsultaReuEstado] = useState<ConsultaEstado>('idle');
+  const [resultadosReu, setResultadosReu] = useState<ResultadoBusca[]>([]);
+  const [draftReu, setDraftReu] = useState<Parte>(emptyParte('passivo'));
+  const [showCadastroReu, setShowCadastroReu] = useState(false);
 
   useEffect(() => {
     if (form.tarefaId && DEMO_MODE) {
@@ -263,7 +325,6 @@ export default function PeticaoInicialPage() {
 
   const scrollTop = () => topRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-  // ── Form helpers ──
   const update = <K extends keyof FormData>(key: K, val: FormData[K]) =>
     setForm(f => ({ ...f, [key]: val }));
 
@@ -271,108 +332,154 @@ export default function PeticaoInicialPage() {
     setForm(initialForm(searchParams.get('tarefa') ?? ''));
     setStep(1);
     setErrors({});
+    setAssuntoSearch('');
+    setSelectedLeaf(null);
+    setQueryAutora(emptyQuery());
+    setConsultaAutoraEstado('idle');
+    setResultadosAutora([]);
     setDraftAutora(emptyParte('ativo'));
-    setCpfBuscaEstado('idle');
-    setReuSearch('');
+    setShowCadastroAutora(false);
+    setQueryReu(emptyQuery());
+    setConsultaReuEstado('idle');
+    setResultadosReu([]);
     setDraftReu(emptyParte('passivo'));
+    setShowCadastroReu(false);
     scrollTop();
   };
 
-  // ── CPF Lookup (Step 3) ──
-  const buscarCpf = () => {
-    const cpf = draftAutora.cpf_cnpj;
-    if (!cpf || cpf.length < 11) return;
-    setCpfBuscaEstado('carregando');
+  // ── Área → Classe cascade ──
+  const areaClasses = form.area
+    ? (areasTJMG.find(a => a.descricao === form.area)?.classes ?? [])
+    : [];
+
+  const handleAreaChange = (newArea: string) => {
+    setForm(f => ({ ...f, area: newArea, classe: '' }));
+  };
+
+  // ── Assuntos ──
+  const toggleAssunto = (a: AssuntoCNJ) => {
+    setForm(f => {
+      const exists = f.assuntos.some(s => s.codigo === a.codigo);
+      return { ...f, assuntos: exists ? f.assuntos.filter(s => s.codigo !== a.codigo) : [...f.assuntos, a] };
+    });
+  };
+
+  function flattenLeaves(nodes: NodoAssunto[]): NodoAssunto[] {
+    return nodes.flatMap(n => n.subitens ? flattenLeaves(n.subitens) : [n]);
+  }
+  const allLeaves = flattenLeaves(arvoreAssuntos);
+  const filteredLeaves = assuntoSearch.length >= 2
+    ? allLeaves.filter(n => {
+        const q = assuntoSearch.toLowerCase();
+        if (assuntoModo === 'glossario') {
+          return (n.glossario ?? '').toLowerCase().includes(q);
+        }
+        return n.descricao.toLowerCase().includes(q) || n.codigo.includes(assuntoSearch);
+      })
+    : null;
+
+  // ── Consulta Autoras ──
+  const consultarAutora = () => {
+    setConsultaAutoraEstado('buscando');
     setTimeout(() => {
-      const found = CPF_MOCK_DB[cpf];
-      if (found) {
-        setDraftAutora(d => ({ ...d, nome: found.nome, data_nascimento: found.dataNasc }));
-        setCpfBuscaEstado('encontrado');
+      const cpf = queryAutora.cpf;
+      const nome = queryAutora.nome.toLowerCase();
+      const found = Object.entries(CPF_MOCK_DB)
+        .filter(([k, v]) => {
+          if (cpf && k !== cpf) return false;
+          if (nome && !v.nome.toLowerCase().includes(nome)) return false;
+          return true;
+        })
+        .map(([k, v]) => ({ id: k, cpf: k, nome: v.nome, infoExtras: v.infoExtras }));
+      if (found.length > 0) {
+        setResultadosAutora(found);
+        setConsultaAutoraEstado('resultado');
       } else {
-        setCpfBuscaEstado('nao_encontrado');
+        setConsultaAutoraEstado('nao_encontrado');
       }
     }, 800);
   };
 
-  const incluirAutora = () => {
-    if (!draftAutora.nome.trim() || !draftAutora.cpf_cnpj.trim()) {
-      setErrors(e => ({ ...e, autora: 'Preencha nome e CPF/CNPJ antes de incluir.' }));
+  const incluirAutoraFromResultado = (r: ResultadoBusca) => {
+    const db = CPF_MOCK_DB[r.cpf];
+    const p = emptyParte('ativo');
+    p.tipo_pessoa = queryAutora.tipoPessoa;
+    p.nome = r.nome;
+    p.cpf_cnpj = r.cpf;
+    p.dataNascimento = db?.dataNasc ?? '';
+    setForm(f => ({ ...f, partesAutoras: [...f.partesAutoras, { ...p }] }));
+    setConsultaAutoraEstado('idle');
+    setResultadosAutora([]);
+    setQueryAutora(emptyQuery());
+  };
+
+  const incluirAutoraCadastro = () => {
+    if (!draftAutora.nome.trim()) {
+      setErrors(e => ({ ...e, autora: 'Informe o nome da parte requerente.' }));
       return;
     }
     setErrors(e => { const n = { ...e }; delete n.autora; return n; });
     setForm(f => ({ ...f, partesAutoras: [...f.partesAutoras, { ...draftAutora }] }));
     setDraftAutora(emptyParte('ativo'));
-    setCpfBuscaEstado('idle');
+    setShowCadastroAutora(false);
+    setConsultaAutoraEstado('idle');
   };
 
   const removerAutora = (idx: number) =>
     setForm(f => ({ ...f, partesAutoras: f.partesAutoras.filter((_, i) => i !== idx) }));
 
-  // ── Réu autocomplete (Step 4) ──
-  const handleReuSearchChange = (val: string) => {
-    setReuSearch(val);
-    setDraftReu(d => ({ ...d, nome: val }));
-    if (val.length >= 2) {
-      const q = val.toLowerCase();
-      setReuSugestoes(entidadesFederais.filter(e =>
-        e.nome.toLowerCase().includes(q) || e.cnpj.includes(q)
-      ).slice(0, 8));
-      setShowReuSugestoes(true);
-    } else {
-      setReuSugestoes([]);
-      setShowReuSugestoes(false);
-    }
+  // ── Consulta Réus ──
+  const consultarReu = () => {
+    setConsultaReuEstado('buscando');
+    setTimeout(() => {
+      const cpf = queryReu.cpf;
+      const nome = queryReu.nome.toLowerCase();
+      const found = Object.entries(CPF_MOCK_DB)
+        .filter(([k, v]) => {
+          if (cpf && k !== cpf) return false;
+          if (nome && !v.nome.toLowerCase().includes(nome)) return false;
+          return true;
+        })
+        .map(([k, v]) => ({ id: k, cpf: k, nome: v.nome, infoExtras: v.infoExtras }));
+      if (found.length > 0) {
+        setResultadosReu(found);
+        setConsultaReuEstado('resultado');
+      } else {
+        setConsultaReuEstado('nao_encontrado');
+      }
+    }, 800);
   };
 
-  const selecionarEntidade = (e: EntidadeFederal) => {
-    setDraftReu(d => ({ ...d, nome: e.nome, cpf_cnpj: e.cnpj, tipo_pessoa: 'juridica' }));
-    setReuSearch(e.nome);
-    setShowReuSugestoes(false);
+  const incluirReuFromResultado = (r: ResultadoBusca) => {
+    const db = CPF_MOCK_DB[r.cpf];
+    const p = emptyParte('passivo');
+    p.tipo_pessoa = queryReu.tipoPessoa;
+    p.nome = r.nome;
+    p.cpf_cnpj = r.cpf;
+    p.dataNascimento = db?.dataNasc ?? '';
+    p.qualificacao = 'REQUERIDO';
+    setForm(f => ({ ...f, partesReus: [...f.partesReus, { ...p }] }));
+    setConsultaReuEstado('idle');
+    setResultadosReu([]);
+    setQueryReu(emptyQuery());
   };
 
-  const incluirReu = () => {
+  const incluirReuCadastro = () => {
     if (!draftReu.nome.trim()) {
-      setErrors(e => ({ ...e, reu: 'Preencha a denominação da parte ré antes de incluir.' }));
+      setErrors(e => ({ ...e, reu: 'Informe o nome da parte requerida.' }));
       return;
     }
     setErrors(e => { const n = { ...e }; delete n.reu; return n; });
     setForm(f => ({ ...f, partesReus: [...f.partesReus, { ...draftReu }] }));
     setDraftReu(emptyParte('passivo'));
-    setReuSearch('');
-    setShowReuSugestoes(false);
+    setShowCadastroReu(false);
+    setConsultaReuEstado('idle');
   };
 
   const removerReu = (idx: number) =>
     setForm(f => ({ ...f, partesReus: f.partesReus.filter((_, i) => i !== idx) }));
 
-  // ── Assuntos (Step 2) ──
-  const toggleAssunto = (a: AssuntoCNJ) => {
-    setForm(f => {
-      const exists = f.assuntos.some(s => s.codigo === a.codigo);
-      return {
-        ...f,
-        assuntos: exists
-          ? f.assuntos.filter(s => s.codigo !== a.codigo)
-          : [...f.assuntos, a],
-      };
-    });
-  };
-
-  // Flat list of all leaf nodes for search
-  function flattenLeaves(nodes: NodoAssunto[]): NodoAssunto[] {
-    return nodes.flatMap(n =>
-      n.subitens ? flattenLeaves(n.subitens) : [n]
-    );
-  }
-  const allLeaves = flattenLeaves(arvoreAssuntos);
-  const filteredLeaves = assuntoSearch.length >= 2
-    ? allLeaves.filter(n =>
-        n.descricao.toLowerCase().includes(assuntoSearch.toLowerCase()) ||
-        n.codigo.includes(assuntoSearch)
-      )
-    : null;
-
-  // ── Documentos (Step 5) ──
+  // ── Documentos ──
   const updateDoc = (idx: number, key: keyof DocumentoForm, val: unknown) =>
     setForm(f => {
       const docs = [...f.documentos];
@@ -393,7 +500,7 @@ export default function PeticaoInicialPage() {
   const toggleInfoAdic = (key: keyof InfoAdicionais) =>
     setForm(f => ({ ...f, infoAdicionais: { ...f.infoAdicionais, [key]: !f.infoAdicionais[key] } }));
 
-  const buscarCep = async (cep: string, setFn: (key: keyof Parte, val: string) => void) => {
+  const buscarCep = async (cep: string, setFn: (k: keyof Parte, v: string) => void) => {
     const digits = cep.replace(/\D/g, '');
     if (digits.length !== 8) return;
     try {
@@ -408,12 +515,13 @@ export default function PeticaoInicialPage() {
     } catch { /* ignore */ }
   };
 
+  const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
+
   // ── Validation ──
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (step === 1) {
-      if (!form.foro)       errs.foro    = 'Selecione o foro.';
-      if (!form.rito)       errs.rito    = 'Selecione o rito/procedimento.';
+      if (!form.area)       errs.area    = 'Selecione a área.';
       if (!form.classe)     errs.classe  = 'Selecione a classe processual.';
       if (!form.valorCausa) errs.valorCausa = 'Informe o valor da causa.';
     }
@@ -421,10 +529,10 @@ export default function PeticaoInicialPage() {
       if (form.assuntos.length === 0) errs.assuntos = 'Selecione ao menos um assunto.';
     }
     if (step === 3) {
-      if (form.partesAutoras.length === 0) errs.autora = 'Inclua ao menos uma parte autora.';
+      if (form.partesAutoras.length === 0) errs.autora = 'Inclua ao menos uma parte requerente.';
     }
     if (step === 4) {
-      if (form.partesReus.length === 0) errs.reu = 'Inclua ao menos uma parte ré.';
+      if (form.partesReus.length === 0) errs.reu = 'Inclua ao menos uma parte requerida.';
     }
     if (step === 5) {
       if (!form.documentos[0].nomeArquivo) errs.peticao_inicial = 'A petição inicial é obrigatória.';
@@ -433,18 +541,10 @@ export default function PeticaoInicialPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const next = () => {
-    if (!validate()) return;
-    setStep(s => s + 1);
-    scrollTop();
-  };
+  const next = () => { if (!validate()) return; setStep(s => s + 1); scrollTop(); };
+  const back = () => { setStep(s => s - 1); scrollTop(); };
 
-  const back = () => {
-    setStep(s => s - 1);
-    scrollTop();
-  };
-
-  // ── Protocolar ──────────────────────────────────────────────────────────────
+  // ── Protocolar ──
   const protocolar = async () => {
     setLoading(true);
     try {
@@ -452,8 +552,6 @@ export default function PeticaoInicialPage() {
       const numeroProcesso = generateProcessNumber(vara.codigo);
       const dataProtocolo = new Date().toISOString();
       const processoId = crypto.randomUUID();
-
-      // Merge partes for storage
       const todasPartes = [...form.partesAutoras, ...form.partesReus];
       const assuntoPrincipal = form.assuntos[0]?.descricao ?? '';
 
@@ -467,8 +565,8 @@ export default function PeticaoInicialPage() {
           assunto: assuntoPrincipal,
           valor_causa: parseCurrency(form.valorCausa),
           vara: vara.nome,
-          segredo_justica: form.nivelSigilo !== 'publico',
-          prioridade: form.prioridade || null,
+          segredo_justica: form.nivelSigilo !== 'Público',
+          prioridade: null,
           status: 'em_andamento',
           nota: null,
           feedback_professor: null,
@@ -480,11 +578,11 @@ export default function PeticaoInicialPage() {
           id: crypto.randomUUID(),
           processo_id: processoId,
           polo: p.polo,
-          tipo_pessoa: p.tipo_pessoa,
+          tipo_pessoa: p.tipo_pessoa === 'Pessoa Física' ? 'fisica' : 'juridica' as 'fisica' | 'juridica',
           nome: p.nome,
           cpf_cnpj: p.cpf_cnpj || null,
-          rg: p.rg || null,
-          data_nascimento: p.data_nascimento || null,
+          rg: null,
+          data_nascimento: p.dataNascimento || null,
           endereco: { logradouro: p.logradouro, numero: p.numero, bairro: p.bairro, cidade: p.cidade, estado: p.estado, cep: p.cep },
           email: p.email || null,
           telefone: p.telefone || null,
@@ -498,7 +596,6 @@ export default function PeticaoInicialPage() {
           autor_id: user!.id,
           created_at: dataProtocolo,
         });
-
       } else {
         await supabase!.from('processos').insert({
           id: processoId,
@@ -509,8 +606,8 @@ export default function PeticaoInicialPage() {
           assunto: assuntoPrincipal,
           valor_causa: parseCurrency(form.valorCausa),
           vara: vara.nome,
-          segredo_justica: form.nivelSigilo !== 'publico',
-          prioridade: form.prioridade || null,
+          segredo_justica: form.nivelSigilo !== 'Público',
+          prioridade: null,
           status: 'em_andamento',
         });
 
@@ -518,11 +615,11 @@ export default function PeticaoInicialPage() {
           todasPartes.map(p => ({
             processo_id: processoId,
             polo: p.polo,
-            tipo_pessoa: p.tipo_pessoa,
+            tipo_pessoa: p.tipo_pessoa === 'Pessoa Física' ? 'fisica' : 'juridica',
             nome: p.nome,
             cpf_cnpj: p.cpf_cnpj || null,
-            rg: p.rg || null,
-            data_nascimento: p.data_nascimento || null,
+            rg: null,
+            data_nascimento: p.dataNascimento || null,
             endereco: { logradouro: p.logradouro, numero: p.numero, bairro: p.bairro, cidade: p.cidade, estado: p.estado, cep: p.cep },
             email: p.email || null,
             telefone: p.telefone || null,
@@ -535,20 +632,6 @@ export default function PeticaoInicialPage() {
           descricao: `Petição inicial protocolada e distribuída à ${vara.nome}`,
           autor_id: user!.id,
         });
-
-        for (const doc of form.documentos) {
-          if (!doc.arquivo) continue;
-          const path = `processos/${processoId}/${doc.tipo}/${doc.arquivo.name}`;
-          await supabase!.storage.from('documentos').upload(path, doc.arquivo, { upsert: true });
-          await supabase!.from('documentos').insert({
-            processo_id: processoId,
-            aluno_id: user!.id,
-            tipo: doc.tipo,
-            nome_arquivo: doc.arquivo.name,
-            storage_path: path,
-            tamanho_bytes: doc.arquivo.size,
-          });
-        }
       }
 
       update('numeroProcesso', numeroProcesso);
@@ -565,30 +648,21 @@ export default function PeticaoInicialPage() {
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // Render helpers
+  // Styles
   // ─────────────────────────────────────────────────────────────────────────────
 
   const isReceipt = step === 7;
   const isConfirm = step === 6;
 
   const TOOLBAR_BTN: React.CSSProperties = {
-    height: 28, padding: '0 12px', fontSize: 12, fontWeight: 600, border: '1px solid #a0a0a0',
-    borderRadius: 2, cursor: 'pointer', background: '#e8e8e8', color: '#1a1a1a',
+    height: 28, padding: '0 12px', fontSize: 12, fontWeight: 600,
+    border: '1px solid #a0a0a0', borderRadius: 2, cursor: 'pointer',
+    background: '#e8e8e8', color: '#1a1a1a',
     display: 'inline-flex', alignItems: 'center', gap: 4,
   };
   const TOOLBAR_BTN_DISABLED: React.CSSProperties = { ...TOOLBAR_BTN, opacity: 0.45, cursor: 'default' };
-
-  const FORM_ROW: React.CSSProperties = {
-    display: 'grid', gridTemplateColumns: '200px 1fr', gap: 0,
-    borderBottom: '1px solid #e5e7eb', alignItems: 'center', minHeight: 36,
-  };
-  const FORM_LABEL_TD: React.CSSProperties = {
-    padding: '6px 10px', fontSize: 12, fontWeight: 600, color: '#374151',
-    background: '#f9fafb', borderRight: '1px solid #e5e7eb', alignSelf: 'stretch',
-    display: 'flex', alignItems: 'center',
-  };
-  const FORM_INPUT_TD: React.CSSProperties = {
-    padding: '4px 8px',
+  const BTN_PRIMARY: React.CSSProperties = {
+    ...TOOLBAR_BTN, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a',
   };
 
   const SECT_HEADER: React.CSSProperties = {
@@ -596,8 +670,259 @@ export default function PeticaoInicialPage() {
     padding: '5px 10px', fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',
   };
 
-  const fieldCls = (err?: string) =>
-    `form-field${err ? ' form-field-error' : ''}`;
+  const FORM_LABEL: React.CSSProperties = {
+    display: 'block', fontSize: 11, fontWeight: 600, color: '#374151', marginBottom: 3,
+  };
+
+  const fieldCls = (err?: string) => `form-field${err ? ' form-field-error' : ''}`;
+
+  // ── Shared nav bar for step 5 ──
+  const Step5NavBar = () => (
+    <div style={{
+      background: '#dde3ea', borderBottom: '1px solid #b0b8c4',
+      padding: '6px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
+    }}>
+      <button style={TOOLBAR_BTN} onClick={() => { setStep(1); scrollTop(); }}>
+        ◀ Retornar para Etapa Inicial
+      </button>
+      <button style={TOOLBAR_BTN} onClick={back}>◀ Anterior</button>
+      <button
+        style={{ ...TOOLBAR_BTN, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a' }}
+        onClick={next}
+      >
+        Finalizar ▶
+      </button>
+      <button style={{ ...TOOLBAR_BTN, background: '#4b5563', color: '#fff', borderColor: '#374151' }}>
+        ✎ Assinar com Certificado Digital
+      </button>
+      <div style={{ width: 1, height: 22, background: '#b0b8c4', margin: '0 4px' }} />
+      <button style={TOOLBAR_BTN} onClick={() => navigate('/dashboard')}>Cancelar</button>
+    </div>
+  );
+
+  // ── Cadastro de Pessoa Física form (Steps 3 & 4) ──
+  const renderCadastroForm = (
+    draft: Parte,
+    setDraft: React.Dispatch<React.SetStateAction<Parte>>,
+    onIncluir: () => void,
+    errKey: string,
+  ) => {
+    const set = (k: keyof Parte, v: unknown) => setDraft(d => ({ ...d, [k]: v }));
+    return (
+      <div style={{ border: '1px solid #c7d2fe', borderRadius: 4, margin: '12px 0', background: '#f8faff' }}>
+        <div style={{ background: '#3730a3', color: '#fff', padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
+          Cadastro de Pessoa Física — Novo Registro
+        </div>
+        <div style={{ padding: 12 }}>
+          {errors[errKey] && (
+            <div style={{ marginBottom: 8, padding: '6px 10px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderRadius: 3 }}>
+              {errors[errKey]}
+            </div>
+          )}
+
+          {/* Nome e Nome Social */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Nome Completo *</label>
+              <input type="text" className="form-field" value={draft.nome}
+                onChange={e => set('nome', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Nome Social</label>
+              <input type="text" className="form-field" value={draft.nomeSocial}
+                onChange={e => set('nomeSocial', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Dados pessoais */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Sexo</label>
+              <select className="form-field" value={draft.sexo} onChange={e => set('sexo', e.target.value)}>
+                <option value="">--</option>
+                {sexos.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Estado Civil</label>
+              <select className="form-field" value={draft.estadoCivil} onChange={e => set('estadoCivil', e.target.value)}>
+                <option value="">--</option>
+                {estadosCivis.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Data de Nascimento</label>
+              <input type="date" className="form-field" value={draft.dataNascimento}
+                onChange={e => set('dataNascimento', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Profissão</label>
+              <input type="text" className="form-field" value={draft.profissao}
+                onChange={e => set('profissao', e.target.value)} />
+            </div>
+          </div>
+
+          {/* LGBTI */}
+          <div style={{ marginBottom: 8, padding: '8px 10px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 3 }}>
+            <label className="pje-checkbox" style={{ fontSize: 12 }}>
+              <input type="checkbox" checked={draft.ehLGBTI} onChange={e => set('ehLGBTI', e.target.checked)} />
+              <span style={{ fontWeight: 600 }}>LGBTI+</span>
+            </label>
+            {draft.ehLGBTI && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                <div>
+                  <label style={FORM_LABEL}>Identidade de Gênero</label>
+                  <select className="form-field" value={draft.identidadeGenero} onChange={e => set('identidadeGenero', e.target.value)}>
+                    <option value="">--</option>
+                    {identidadesGenero.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={FORM_LABEL}>Orientação Sexual</label>
+                  <select className="form-field" value={draft.orientacaoSexual} onChange={e => set('orientacaoSexual', e.target.value)}>
+                    <option value="">--</option>
+                    {orientacoesSexuais.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Naturalidade, Mãe, Pai */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Naturalidade</label>
+              <input type="text" className="form-field" value={draft.naturalidade}
+                onChange={e => set('naturalidade', e.target.value)} placeholder="Cidade — UF" />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Nome da Mãe</label>
+              <input type="text" className="form-field" value={draft.nomeMae}
+                onChange={e => set('nomeMae', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Nome do Pai</label>
+              <input type="text" className="form-field" value={draft.nomePai}
+                onChange={e => set('nomePai', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Deficiência, Gestante, Escolaridade, Raça */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Deficiência</label>
+              <select className="form-field" value={draft.tipoDeficiencia}
+                onChange={e => { set('tipoDeficiencia', e.target.value); set('temDeficiencia', e.target.value !== ''); }}>
+                <option value="">Nenhuma</option>
+                {tiposDeficiencia.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" checked={draft.gestante} onChange={e => set('gestante', e.target.checked)} />
+                <span>Gestante</span>
+              </label>
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Escolaridade</label>
+              <select className="form-field" value={draft.escolaridade} onChange={e => set('escolaridade', e.target.value)}>
+                <option value="">--</option>
+                {niveisEscolaridade.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Raça / Etnia</label>
+              <select className="form-field" value={draft.racaEtnia} onChange={e => set('racaEtnia', e.target.value)}>
+                <option value="">--</option>
+                {racasEtnia.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Dependentes */}
+          <div style={{ marginBottom: 8 }}>
+            <label style={FORM_LABEL}>Dependentes (quantidade)</label>
+            <input type="number" className="form-field" value={draft.dependentes}
+              onChange={e => set('dependentes', e.target.value)}
+              style={{ maxWidth: 100 }} min={0} />
+          </div>
+
+          {/* Endereço */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 4, marginTop: 8, textTransform: 'uppercase' }}>
+            Endereço
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 80px', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>CEP</label>
+              <input type="text" className="form-field" value={draft.cep}
+                onChange={e => set('cep', formatCep(e.target.value))}
+                onBlur={e => buscarCep(e.target.value, (k, v) => setDraft(d => ({ ...d, [k]: v })))}
+                placeholder="00000-000" maxLength={9} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Logradouro</label>
+              <input type="text" className="form-field" value={draft.logradouro}
+                onChange={e => set('logradouro', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Número</label>
+              <input type="text" className="form-field" value={draft.numero}
+                onChange={e => set('numero', e.target.value)} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Complemento</label>
+              <input type="text" className="form-field" value={draft.complemento}
+                onChange={e => set('complemento', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Bairro</label>
+              <input type="text" className="form-field" value={draft.bairro}
+                onChange={e => set('bairro', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Cidade</label>
+              <input type="text" className="form-field" value={draft.cidade}
+                onChange={e => set('cidade', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>UF</label>
+              <select className="form-field" value={draft.estado} onChange={e => set('estado', e.target.value)}>
+                {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Contato */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 4, textTransform: 'uppercase' }}>
+            Contato
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+            <div>
+              <label style={FORM_LABEL}>E-mail</label>
+              <input type="email" className="form-field" value={draft.email}
+                onChange={e => set('email', e.target.value)} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Telefone</label>
+              <input type="text" className="form-field" value={draft.telefone}
+                onChange={e => set('telefone', formatPhone(e.target.value))}
+                placeholder="(00) 00000-0000" maxLength={15} />
+            </div>
+          </div>
+
+          <button style={{ ...BTN_PRIMARY, height: 36, padding: '0 20px', fontSize: 13 }} onClick={onIncluir}>
+            <Plus size={14} /> Incluir Parte
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
     <EprocLayout>
@@ -616,18 +941,14 @@ export default function PeticaoInicialPage() {
           </div>
         )}
 
-        {/* ── Toolbar ── */}
-        {!isReceipt && (
+        {/* ── Toolbar (steps 1–4 & 6) ── */}
+        {!isReceipt && step !== 5 && (
           <div style={{
             background: '#dde3ea', borderBottom: '1px solid #b0b8c4',
             padding: '6px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
           }}>
-            <button style={TOOLBAR_BTN} onClick={() => navigate('/meus-processos')}>
-              Consultar
-            </button>
-            <button style={TOOLBAR_BTN} onClick={resetForm}>
-              Novo
-            </button>
+            <button style={TOOLBAR_BTN} onClick={() => navigate('/meus-processos')}>Consultar</button>
+            <button style={TOOLBAR_BTN} onClick={resetForm}>Novo</button>
             <div style={{ width: 1, height: 22, background: '#b0b8c4', margin: '0 4px' }} />
             <button
               style={step <= 1 ? TOOLBAR_BTN_DISABLED : TOOLBAR_BTN}
@@ -637,9 +958,7 @@ export default function PeticaoInicialPage() {
               ◀ Anterior
             </button>
             {step < 6 && (
-              <button style={TOOLBAR_BTN} onClick={next}>
-                Próxima ▶
-              </button>
+              <button style={TOOLBAR_BTN} onClick={next}>Próxima ▶</button>
             )}
             {step === 6 && (
               <button
@@ -651,9 +970,7 @@ export default function PeticaoInicialPage() {
               </button>
             )}
             <div style={{ width: 1, height: 22, background: '#b0b8c4', margin: '0 4px' }} />
-            <button style={TOOLBAR_BTN} onClick={() => navigate('/dashboard')}>
-              Cancelar
-            </button>
+            <button style={TOOLBAR_BTN} onClick={() => navigate('/dashboard')}>Cancelar</button>
           </div>
         )}
 
@@ -673,7 +990,6 @@ export default function PeticaoInicialPage() {
                   <span style={{
                     fontWeight: active ? 700 : done ? 600 : 400,
                     color: active ? 'hsl(210,100%,20%)' : done ? '#16a34a' : '#6b7280',
-                    textDecoration: done ? 'none' : undefined,
                   }}>
                     {done && '✓ '}{name}
                   </span>
@@ -692,220 +1008,190 @@ export default function PeticaoInicialPage() {
           }}>
             <strong>Tarefa vinculada:</strong> {tarefa.titulo}
             {tarefa.prazo && (
-              <span style={{ marginLeft: 8 }}>
-                · Prazo: {new Date(tarefa.prazo).toLocaleDateString('pt-BR')}
-              </span>
+              <span style={{ marginLeft: 8 }}>· Prazo: {new Date(tarefa.prazo).toLocaleDateString('pt-BR')}</span>
             )}
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 1 — Informações do processo
+            STEP 1 — Informações do Processo
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 1 && (
           <div style={{ margin: 16 }}>
             <StepPanel>
-              {/* Seção: Identificação */}
+              {/* Apoio por IA toggle */}
+              <div style={{
+                padding: '8px 12px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#166534' }}>⚡ Apoio por IA</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.apoioIA}
+                    onChange={e => update('apoioIA', e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span style={{ fontSize: 11, color: '#374151' }}>
+                    {form.apoioIA ? 'Ativado — sugestões automáticas habilitadas' : 'Desativado'}
+                  </span>
+                </label>
+              </div>
+
               <div style={SECT_HEADER}>Identificação do Processo</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Foro / Seção Judiciária *</td>
-                    <td style={FORM_INPUT_TD}>
-                      <select
-                        className={fieldCls(errors.foro)}
-                        value={form.foro}
-                        onChange={e => update('foro', e.target.value)}
-                        style={{ maxWidth: 520 }}
-                      >
-                        <option value="">-- Selecione --</option>
-                        {forosJFMG.map(f => (
-                          <option key={f.codigo} value={f.codigo}>{f.descricao}</option>
-                        ))}
-                      </select>
-                      {errors.foro && <div className="form-error">{errors.foro}</div>}
-                    </td>
-                  </tr>
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Rito / Procedimento *</td>
-                    <td style={FORM_INPUT_TD}>
-                      <select
-                        className={fieldCls(errors.rito)}
-                        value={form.rito}
-                        onChange={e => update('rito', e.target.value)}
-                        style={{ maxWidth: 480 }}
-                      >
-                        <option value="">-- Selecione --</option>
-                        {ritos.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                      {errors.rito && <div className="form-error">{errors.rito}</div>}
-                    </td>
-                  </tr>
-                  {form.rito.includes('JEF') && (
-                    <tr style={FORM_ROW}>
-                      <td style={FORM_LABEL_TD}>Tipo de Ação (JEF)</td>
-                      <td style={FORM_INPUT_TD}>
-                        <select
-                          className="form-field"
-                          value={form.tipoAcaoJEF}
-                          onChange={e => update('tipoAcaoJEF', e.target.value)}
-                          style={{ maxWidth: 480 }}
-                        >
-                          <option value="">-- Selecione --</option>
-                          {tiposAcaoJEF.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                      </td>
-                    </tr>
+
+              {/* Two-column layout */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                {/* Left column */}
+                <div style={{ borderRight: '1px solid #e5e7eb' }}>
+                  {/* Tribunal */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Tribunal</label>
+                    <select className="form-field" value={form.tribunal} disabled style={{ maxWidth: '100%', background: '#f9fafb' }}>
+                      {tribunaisTJMG.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Área */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Área *</label>
+                    <select
+                      className={fieldCls(errors.area)}
+                      value={form.area}
+                      onChange={e => handleAreaChange(e.target.value)}
+                      style={{ maxWidth: '100%' }}
+                    >
+                      <option value="">-- Selecione --</option>
+                      {areasTJMG.map(a => <option key={a.codigo} value={a.descricao}>{a.descricao}</option>)}
+                    </select>
+                    {errors.area && <div className="form-error">{errors.area}</div>}
+                  </div>
+
+                  {/* Classe */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Classe Processual *</label>
+                    <select
+                      className={fieldCls(errors.classe)}
+                      value={form.classe}
+                      onChange={e => update('classe', e.target.value)}
+                      disabled={!form.area}
+                      style={{ maxWidth: '100%' }}
+                    >
+                      <option value="">-- Selecione --</option>
+                      {areaClasses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    {errors.classe && <div className="form-error">{errors.classe}</div>}
+                  </div>
+
+                  {/* Tipo Justiça */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Tipo de Justiça</label>
+                    <input type="text" className="form-field" value={form.tipoJustica} disabled
+                      style={{ background: '#f9fafb', maxWidth: '100%' }} />
+                  </div>
+
+                  {/* Nível de Sigilo */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Nível de Sigilo</label>
+                    <select
+                      className="form-field"
+                      value={form.nivelSigilo}
+                      onChange={e => update('nivelSigilo', e.target.value)}
+                      style={{ maxWidth: '100%' }}
+                    >
+                      {niveisSigno.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Valor da causa */}
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Valor da Causa (R$) *</label>
+                    <input
+                      type="text"
+                      className={fieldCls(errors.valorCausa)}
+                      value={form.valorCausa}
+                      onChange={e => update('valorCausa', formatCurrency(e.target.value))}
+                      placeholder="0,00"
+                      style={{ maxWidth: 200 }}
+                    />
+                    {errors.valorCausa && <div className="form-error">{errors.valorCausa}</div>}
+                  </div>
+                </div>
+
+                {/* Right column */}
+                <div>
+                  {/* Processo Originário */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Processo Originário</label>
+                    <input
+                      type="text"
+                      className="form-field"
+                      value={form.processoOriginario}
+                      onChange={e => update('processoOriginario', e.target.value)}
+                      placeholder="Ex.: 0001234-56.2020.8.13.0079"
+                      style={{ maxWidth: '100%' }}
+                    />
+                  </div>
+
+                  {/* Juízo (disabled) */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label style={FORM_LABEL}>Juízo / Vara</label>
+                    <input
+                      type="text"
+                      className="form-field"
+                      value={form.juizo}
+                      disabled
+                      placeholder="Preenchido automaticamente após distribuição"
+                      style={{ background: '#f9fafb', maxWidth: '100%' }}
+                    />
+                    <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
+                      Será definido após sorteio automático.
+                    </div>
+                  </div>
+
+                  {/* Não se aplica */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={form.naoSeAplica}
+                        onChange={e => update('naoSeAplica', e.target.checked)}
+                      />
+                      <span>Não se aplica a distribuição por especialização</span>
+                    </label>
+                  </div>
+
+                  {/* Remeter ao Plantão */}
+                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                    <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={form.remeterPlantao}
+                        onChange={e => update('remeterPlantao', e.target.checked)}
+                      />
+                      <span>Remeter ao Plantão Judiciário</span>
+                    </label>
+                  </div>
+
+                  {/* Plantão warning */}
+                  {form.remeterPlantao && (
+                    <div style={{
+                      margin: '0 12px 8px', padding: '8px 12px',
+                      background: '#fefce8', border: '1px solid #fde047',
+                      borderRadius: 3, fontSize: 11, color: '#713f12',
+                    }}>
+                      ⚠ <strong>Atenção:</strong> O peticionamento em regime de plantão é cabível apenas
+                      em situações urgentes previstas no Regimento Interno do TJMG. O uso indevido
+                      pode ensejar sanções processuais.
+                    </div>
                   )}
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Classe Processual *</td>
-                    <td style={FORM_INPUT_TD}>
-                      <select
-                        className={fieldCls(errors.classe)}
-                        value={form.classe}
-                        onChange={e => update('classe', e.target.value)}
-                        style={{ maxWidth: 520 }}
-                      >
-                        <option value="">-- Selecione --</option>
-                        {classesProcessuais.map(c => (
-                          <option key={c.codigo} value={c.descricao}>
-                            [{c.grupo}] {c.descricao} (cód. {c.codigo})
-                          </option>
-                        ))}
-                      </select>
-                      {errors.classe && <div className="form-error">{errors.classe}</div>}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
 
-              {/* Seção: Valor e características */}
-              <div style={SECT_HEADER}>Valor da Causa e Características</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Valor da Causa (R$) *</td>
-                    <td style={FORM_INPUT_TD}>
-                      <input
-                        type="text"
-                        className={fieldCls(errors.valorCausa)}
-                        value={form.valorCausa}
-                        onChange={e => update('valorCausa', formatCurrency(e.target.value))}
-                        placeholder="0,00"
-                        style={{ maxWidth: 200 }}
-                      />
-                      {errors.valorCausa && <div className="form-error">{errors.valorCausa}</div>}
-                      {form.rito.includes('JEF') && (
-                        <div style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>
-                          Limite JEF: 60 salários mínimos (R$ {(60 * 1412).toLocaleString('pt-BR')},00)
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-
-                  {form.rito.includes('JEF') && (
-                    <tr style={FORM_ROW}>
-                      <td style={FORM_LABEL_TD}>Renúncia ao excedente</td>
-                      <td style={FORM_INPUT_TD}>
-                        <label className="pje-checkbox">
-                          <input
-                            type="checkbox"
-                            checked={form.renunciaExcedente}
-                            onChange={e => update('renunciaExcedente', e.target.checked)}
-                          />
-                          <span style={{ fontSize: 12 }}>
-                            Declaro que renuncio ao valor que exceder 60 salários mínimos
-                            para fins de fixação da competência do JEF (art. 3º, §3º, Lei 10.259/2001)
-                          </span>
-                        </label>
-                      </td>
-                    </tr>
-                  )}
-
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Nível de Sigilo</td>
-                    <td style={FORM_INPUT_TD}>
-                      <select
-                        className="form-field"
-                        value={form.nivelSigilo}
-                        onChange={e => update('nivelSigilo', e.target.value)}
-                        style={{ maxWidth: 380 }}
-                      >
-                        {niveisSigno.map(n => <option key={n.codigo} value={n.codigo}>{n.descricao}</option>)}
-                      </select>
-                    </td>
-                  </tr>
-
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Prioridade</td>
-                    <td style={FORM_INPUT_TD}>
-                      <select
-                        className="form-field"
-                        value={form.prioridade}
-                        onChange={e => update('prioridade', e.target.value)}
-                        style={{ maxWidth: 360 }}
-                      >
-                        <option value="">Nenhuma</option>
-                        {prioridades.map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Seção: Processo originário e advogados */}
-              <div style={SECT_HEADER}>Dados Complementares (opcional)</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <tbody>
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Processo originário</td>
-                    <td style={FORM_INPUT_TD}>
-                      <input
-                        type="text"
-                        className="form-field"
-                        value={form.processoOriginario}
-                        onChange={e => update('processoOriginario', e.target.value)}
-                        placeholder="Ex.: 0001234-56.2020.4.01.3800"
-                        style={{ maxWidth: 320 }}
-                      />
-                    </td>
-                  </tr>
-                  <tr style={FORM_ROW}>
-                    <td style={FORM_LABEL_TD}>Juízo / Instância</td>
-                    <td style={FORM_INPUT_TD}>
-                      <input
-                        type="text"
-                        className="form-field"
-                        value={form.juizo}
-                        onChange={e => update('juizo', e.target.value)}
-                        placeholder="Ex.: 1ª Vara Federal de BH"
-                        style={{ maxWidth: 400 }}
-                      />
-                    </td>
-                  </tr>
-                  <tr style={{ ...FORM_ROW, alignItems: 'flex-start' }}>
-                    <td style={{ ...FORM_LABEL_TD, paddingTop: 10 }}>Outros advogados</td>
-                    <td style={FORM_INPUT_TD}>
-                      <textarea
-                        className="form-field"
-                        value={form.outrosAdvogados}
-                        onChange={e => update('outrosAdvogados', e.target.value)}
-                        placeholder="Nome e OAB de outros advogados (um por linha)"
-                        rows={2}
-                        style={{ resize: 'vertical', maxWidth: 480, fontSize: 12 }}
-                      />
-                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-                        O peticionante ({user?.nome_completo} — {user?.oab_simulado}) é incluído automaticamente.
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Custas info */}
-              <div style={{ padding: '10px 12px', background: '#fffbeb', borderTop: '1px solid #e5e7eb', fontSize: 11, color: '#92400e' }}>
-                <strong>ℹ Custas processuais:</strong> No sistema simulado, as custas são dispensadas para fins didáticos.
-                Em ações reais perante a JF, a guia de custas deve ser recolhida via GRU antes do protocolo.
+                  {/* Custas note */}
+                  <div style={{ padding: '8px 12px', background: '#fffbeb', borderTop: '1px solid #fde68a', fontSize: 11, color: '#92400e' }}>
+                    ℹ <strong>Custas:</strong> No simulador educacional, as custas são dispensadas
+                    para fins didáticos.
+                  </div>
+                </div>
               </div>
             </StepPanel>
           </div>
@@ -917,28 +1203,59 @@ export default function PeticaoInicialPage() {
         {step === 2 && (
           <div style={{ margin: 16 }}>
             <StepPanel>
-              <div style={SECT_HEADER}>Seleção de Assuntos (Tabela CNJ)</div>
-              <div style={{ padding: '10px 12px', fontSize: 12, color: '#374151', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                Selecione o(s) assunto(s) que melhor descrevem o objeto da ação. Ao menos um é obrigatório.
-                O primeiro assunto selecionado será o <strong>assunto principal</strong>.
+              <div style={SECT_HEADER}>
+                {form.assuntos.length === 0 ? 'Selecionar Assunto Principal' : 'Selecionar Demais Assuntos'}
               </div>
 
-              {/* Search */}
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: 8, alignItems: 'center' }}>
-                <Search size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                <input
-                  type="text"
-                  placeholder="Buscar assunto ou código..."
-                  className="form-field"
-                  value={assuntoSearch}
-                  onChange={e => setAssuntoSearch(e.target.value)}
-                  style={{ maxWidth: 400, fontSize: 12 }}
-                />
-                {assuntoSearch && (
-                  <button style={{ fontSize: 11, color: '#6b7280', cursor: 'pointer', background: 'none', border: 'none' }} onClick={() => setAssuntoSearch('')}>
-                    limpar
-                  </button>
-                )}
+              {/* Modo radio */}
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>Modo de busca:</span>
+                {(['assunto', 'glossario'] as const).map(m => (
+                  <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 12 }}>
+                    <input type="radio" value={m} checked={assuntoModo === m} onChange={() => setAssuntoModo(m)} />
+                    {m === 'assunto' ? 'Assunto' : 'Glossário'}
+                  </label>
+                ))}
+              </div>
+
+              {/* Decorative toolbar */}
+              <div style={{
+                padding: '6px 12px', borderBottom: '1px solid #e5e7eb',
+                background: '#f8fafc', display: 'flex', gap: 6, alignItems: 'center',
+              }}>
+                <button
+                  style={TOOLBAR_BTN}
+                  onClick={() => { /* filtrar — já ocorre via estado */ }}
+                >
+                  🔎 Filtrar
+                </button>
+                <button
+                  style={TOOLBAR_BTN}
+                  onClick={() => {
+                    const q = assuntoSearch;
+                    setAssuntoSearch('');
+                    setTimeout(() => setAssuntoSearch(q), 0);
+                  }}
+                >
+                  🔍 Pesquisar
+                </button>
+                <button
+                  style={TOOLBAR_BTN}
+                  onClick={() => { setAssuntoSearch(''); setSelectedLeaf(null); }}
+                >
+                  ✕ Limpar
+                </button>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <Search size={13} style={{ color: '#9ca3af' }} />
+                  <input
+                    type="text"
+                    placeholder={assuntoModo === 'assunto' ? 'Buscar por assunto ou código...' : 'Buscar por glossário...'}
+                    className="form-field"
+                    value={assuntoSearch}
+                    onChange={e => setAssuntoSearch(e.target.value)}
+                    style={{ maxWidth: 300, fontSize: 12 }}
+                  />
+                </div>
               </div>
 
               {errors.assuntos && (
@@ -947,88 +1264,119 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
 
-              {/* Tree or search results */}
-              <div style={{ maxHeight: 320, overflowY: 'auto', border: '1px solid #e5e7eb', margin: 12, borderRadius: 4 }}>
-                {filteredLeaves ? (
-                  filteredLeaves.length === 0 ? (
-                    <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>
-                      Nenhum assunto encontrado para "{assuntoSearch}"
-                    </div>
-                  ) : filteredLeaves.map(n => (
-                    <AssuntoNode
-                      key={n.codigo}
-                      node={n}
-                      level={0}
-                      selected={form.assuntos}
-                      onToggle={toggleAssunto}
-                    />
-                  ))
-                ) : (
-                  arvoreAssuntos.map(n => (
-                    <AssuntoNode
-                      key={n.codigo}
-                      node={n}
-                      level={0}
-                      selected={form.assuntos}
-                      onToggle={toggleAssunto}
-                    />
-                  ))
-                )}
-              </div>
+              {/* Main content: tree left, table right */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px' }}>
+                {/* Tree / search results */}
+                <div style={{ borderRight: '1px solid #e5e7eb' }}>
+                  <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+                    {filteredLeaves ? (
+                      filteredLeaves.length === 0 ? (
+                        <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>
+                          Nenhum assunto encontrado para "{assuntoSearch}"
+                        </div>
+                      ) : filteredLeaves.map(n => (
+                        <AssuntoNode key={n.codigo} node={n} level={0}
+                          selected={form.assuntos} onToggle={toggleAssunto}
+                          onSelectLeaf={setSelectedLeaf} selectedLeaf={selectedLeaf} />
+                      ))
+                    ) : (
+                      arvoreAssuntos.map(n => (
+                        <AssuntoNode key={n.codigo} node={n} level={0}
+                          selected={form.assuntos} onToggle={toggleAssunto}
+                          onSelectLeaf={setSelectedLeaf} selectedLeaf={selectedLeaf} />
+                      ))
+                    )}
+                  </div>
 
-              {/* Selected list */}
-              <div style={{ margin: '0 12px 12px', padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 4 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
-                  Assuntos selecionados ({form.assuntos.length}):
+                  {/* Leaf detail panel */}
+                  {selectedLeaf && (
+                    <div style={{
+                      borderTop: '1px solid #e5e7eb', padding: '8px 12px',
+                      background: '#eff6ff', fontSize: 12,
+                    }}>
+                      <div style={{ fontWeight: 700, color: '#1e3a5f', marginBottom: 4 }}>
+                        {selectedLeaf.descricao} <span style={{ fontFamily: 'monospace', fontWeight: 400, color: '#6b7280' }}>({selectedLeaf.codigo})</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                        <div>
+                          <span style={{ color: '#6b7280' }}>Pode ser principal: </span>
+                          <strong>{selectedLeaf.podePrincipal ? 'Sim' : 'Não'}</strong>
+                        </div>
+                        {selectedLeaf.norma && (
+                          <div>
+                            <span style={{ color: '#6b7280' }}>Norma: </span>
+                            <strong>{selectedLeaf.norma}</strong>
+                          </div>
+                        )}
+                        {selectedLeaf.artigo && (
+                          <div>
+                            <span style={{ color: '#6b7280' }}>Artigo: </span>
+                            <strong>{selectedLeaf.artigo}</strong>
+                          </div>
+                        )}
+                      </div>
+                      {selectedLeaf.glossario && (
+                        <div style={{ marginTop: 4, color: '#374151', fontStyle: 'italic' }}>
+                          Glossário: {selectedLeaf.glossario}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {form.assuntos.length === 0 ? (
-                  <div style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic' }}>Nenhum selecionado ainda.</div>
-                ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead>
-                      <tr style={{ background: '#dcfce7' }}>
-                        <th style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 700, width: 30 }}>#</th>
-                        <th style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 700 }}>Descrição</th>
-                        <th style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 700, width: 90 }}>Código</th>
-                        <th style={{ padding: '4px 8px', textAlign: 'left', fontWeight: 700, width: 80 }}>Função</th>
-                        <th style={{ width: 32 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {form.assuntos.map((a, i) => (
-                        <tr key={a.codigo} style={{ borderBottom: '1px solid #d1fae5' }}>
-                          <td style={{ padding: '3px 8px', color: '#6b7280' }}>{i + 1}</td>
-                          <td style={{ padding: '3px 8px' }}>{a.descricao}</td>
-                          <td style={{ padding: '3px 8px', fontFamily: 'monospace' }}>{a.codigo}</td>
-                          <td style={{ padding: '3px 8px', fontWeight: 600, color: i === 0 ? '#1e40af' : '#374151' }}>
-                            {i === 0 ? 'Principal' : 'Secundário'}
-                          </td>
-                          <td style={{ padding: '3px 4px', textAlign: 'center' }}>
-                            <button
-                              onClick={() => toggleAssunto(a)}
-                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', lineHeight: 1 }}
-                              title="Remover"
-                            >
-                              <X size={13} />
-                            </button>
-                          </td>
+
+                {/* Right: assuntos incluídos */}
+                <div style={{ padding: 10 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                    Assuntos selecionados ({form.assuntos.length})
+                  </div>
+                  {form.assuntos.length === 0 ? (
+                    <div style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic', padding: '12px 0' }}>
+                      Nenhum assunto incluído ainda.
+                    </div>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                      <thead>
+                        <tr style={{ background: '#dbeafe' }}>
+                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>#</th>
+                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>Assunto</th>
+                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>Função</th>
+                          <th style={{ width: 24 }}></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      </thead>
+                      <tbody>
+                        {form.assuntos.map((a, i) => (
+                          <tr key={a.codigo} style={{ borderBottom: '1px solid #bfdbfe' }}>
+                            <td style={{ padding: '3px 6px', color: '#6b7280' }}>{i + 1}</td>
+                            <td style={{ padding: '3px 6px' }}>{a.descricao}</td>
+                            <td style={{ padding: '3px 6px', fontWeight: 600, color: i === 0 ? '#1e40af' : '#374151' }}>
+                              {i === 0 ? 'Principal' : 'Secundário'}
+                            </td>
+                            <td style={{ padding: '3px 4px', textAlign: 'center' }}>
+                              <button
+                                onClick={() => toggleAssunto(a)}
+                                style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}
+                              >
+                                <X size={12} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
               </div>
             </StepPanel>
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 3 — Partes Autoras
+            STEP 3 — Partes Requerentes
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 3 && (
           <div style={{ margin: 16 }}>
             <StepPanel>
-              <div style={SECT_HEADER}>Polo Ativo — Partes Autoras</div>
+              <div style={SECT_HEADER}>Polo Ativo — Partes Requerentes</div>
 
               {errors.autora && (
                 <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
@@ -1036,168 +1384,164 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
 
-              {/* Advogado info */}
+              {/* Advogado */}
               <div style={{ padding: '8px 12px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: 12 }}>
                 <strong>Advogado(a) peticionante:</strong> {user?.nome_completo} — {user?.oab_simulado}
               </div>
 
-              {/* Draft form */}
+              {/* Consulta form */}
               <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
-                  Incluir Parte Autora
+                  Consultar Pessoa
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                  {/* Tipo */}
+                <div style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr', gap: 8, alignItems: 'end', marginBottom: 8 }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Tipo de Pessoa</label>
-                    <select
-                      className="form-field"
-                      value={draftAutora.tipo_pessoa}
-                      onChange={e => setDraftAutora(d => ({ ...d, tipo_pessoa: e.target.value as 'fisica' | 'juridica', cpf_cnpj: '' }))}
-                    >
-                      <option value="fisica">Pessoa Física</option>
-                      <option value="juridica">Pessoa Jurídica</option>
+                    <label style={FORM_LABEL}>Tipo de Pessoa</label>
+                    <select className="form-field" value={queryAutora.tipoPessoa}
+                      onChange={e => setQueryAutora(q => ({ ...q, tipoPessoa: e.target.value }))}>
+                      {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-
-                  {/* CPF / CNPJ + lookup */}
                   <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>
-                      {draftAutora.tipo_pessoa === 'fisica' ? 'CPF *' : 'CNPJ *'}
-                    </label>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <label style={FORM_LABEL}>CPF</label>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <input
                         type="text"
                         className="form-field"
-                        value={draftAutora.cpf_cnpj}
-                        onChange={e => {
-                          setDraftAutora(d => ({ ...d, cpf_cnpj: formatCpfCnpj(e.target.value) }));
-                          setCpfBuscaEstado('idle');
-                        }}
-                        placeholder={draftAutora.tipo_pessoa === 'fisica' ? '000.000.000-00' : '00.000.000/0000-00'}
-                        maxLength={18}
-                        style={{ flex: 1 }}
+                        value={queryAutora.cpf}
+                        onChange={e => setQueryAutora(q => ({ ...q, cpf: formatCpfCnpj(e.target.value) }))}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                        disabled={queryAutora.semCpf}
+                        style={{ flex: 1, background: queryAutora.semCpf ? '#f9fafb' : undefined }}
                       />
-                      {draftAutora.tipo_pessoa === 'fisica' && (
-                        <button
-                          style={{ ...TOOLBAR_BTN, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a', flexShrink: 0 }}
-                          onClick={buscarCpf}
-                          disabled={cpfBuscaEstado === 'carregando'}
-                        >
-                          {cpfBuscaEstado === 'carregando'
-                            ? <Loader2 size={12} className="animate-spin" />
-                            : <Search size={12} />}
-                          {cpfBuscaEstado === 'carregando' ? 'Buscando...' : 'Buscar'}
-                        </button>
-                      )}
                     </div>
-                    {cpfBuscaEstado === 'encontrado' && (
-                      <div style={{ fontSize: 11, color: '#166534', marginTop: 2 }}>✓ Dados preenchidos automaticamente</div>
-                    )}
-                    {cpfBuscaEstado === 'nao_encontrado' && (
-                      <div style={{ fontSize: 11, color: '#92400e', marginTop: 2 }}>CPF não encontrado — preencha manualmente</div>
-                    )}
-                  </div>
-
-                  {/* Nome */}
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label className="form-label" style={{ fontSize: 11 }}>
-                      {draftAutora.tipo_pessoa === 'fisica' ? 'Nome Completo *' : 'Razão Social *'}
+                    <label className="pje-checkbox" style={{ fontSize: 11, marginTop: 2 }}>
+                      <input type="checkbox" checked={queryAutora.semCpf}
+                        onChange={e => setQueryAutora(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
+                      <span>Sem CPF</span>
                     </label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      value={draftAutora.nome}
-                      onChange={e => setDraftAutora(d => ({ ...d, nome: e.target.value }))}
-                    />
-                  </div>
-
-                  {draftAutora.tipo_pessoa === 'fisica' && (
-                    <>
-                      <div>
-                        <label className="form-label" style={{ fontSize: 11 }}>RG</label>
-                        <input type="text" className="form-field" value={draftAutora.rg}
-                          onChange={e => setDraftAutora(d => ({ ...d, rg: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label className="form-label" style={{ fontSize: 11 }}>Data de Nascimento</label>
-                        <input type="date" className="form-field" value={draftAutora.data_nascimento}
-                          onChange={e => setDraftAutora(d => ({ ...d, data_nascimento: e.target.value }))} />
-                      </div>
-                    </>
-                  )}
-
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Telefone</label>
-                    <input type="text" className="form-field" value={draftAutora.telefone}
-                      onChange={e => setDraftAutora(d => ({ ...d, telefone: formatPhone(e.target.value) }))}
-                      placeholder="(00) 00000-0000" maxLength={15} />
                   </div>
                   <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>E-mail</label>
-                    <input type="email" className="form-field" value={draftAutora.email}
-                      onChange={e => setDraftAutora(d => ({ ...d, email: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>CEP</label>
-                    <input type="text" className="form-field" value={draftAutora.cep}
-                      onChange={e => setDraftAutora(d => ({ ...d, cep: formatCep(e.target.value) }))}
-                      onBlur={e => buscarCep(e.target.value, (k, v) => setDraftAutora(d => ({ ...d, [k]: v })))}
-                      placeholder="00000-000" maxLength={9} />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Logradouro</label>
-                    <input type="text" className="form-field" value={draftAutora.logradouro}
-                      onChange={e => setDraftAutora(d => ({ ...d, logradouro: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Número</label>
-                    <input type="text" className="form-field" value={draftAutora.numero}
-                      onChange={e => setDraftAutora(d => ({ ...d, numero: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Bairro</label>
-                    <input type="text" className="form-field" value={draftAutora.bairro}
-                      onChange={e => setDraftAutora(d => ({ ...d, bairro: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Cidade</label>
-                    <input type="text" className="form-field" value={draftAutora.cidade}
-                      onChange={e => setDraftAutora(d => ({ ...d, cidade: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Estado</label>
-                    <select className="form-field" value={draftAutora.estado}
-                      onChange={e => setDraftAutora(d => ({ ...d, estado: e.target.value }))}>
-                      {['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf => (
-                        <option key={uf} value={uf}>{uf}</option>
-                      ))}
-                    </select>
+                    <label style={FORM_LABEL}>Nome (opcional)</label>
+                    <input type="text" className="form-field" value={queryAutora.nome}
+                      onChange={e => setQueryAutora(q => ({ ...q, nome: e.target.value }))}
+                      placeholder="Parte do nome para filtrar" />
                   </div>
                 </div>
 
-                <button
-                  style={{ ...TOOLBAR_BTN, marginTop: 12, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a', height: 36, padding: '0 20px', fontSize: 13 }}
-                  onClick={incluirAutora}
-                >
-                  <Plus size={14} /> Incluir Parte Autora
-                </button>
+                {/* Outros documentos */}
+                {queryAutora.semCpf && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 8, marginBottom: 8 }}>
+                    <div>
+                      <label style={FORM_LABEL}>Outros Documentos</label>
+                      <select className="form-field" value={queryAutora.outroDocTipo}
+                        onChange={e => setQueryAutora(q => ({ ...q, outroDocTipo: e.target.value }))}>
+                        <option value="">-- Selecione --</option>
+                        {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={FORM_LABEL}>Número</label>
+                      <input type="text" className="form-field" value={queryAutora.outroDocNum}
+                        onChange={e => setQueryAutora(q => ({ ...q, outroDocNum: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    style={{ ...BTN_PRIMARY, height: 32 }}
+                    onClick={consultarAutora}
+                    disabled={consultaAutoraEstado === 'buscando'}
+                  >
+                    {consultaAutoraEstado === 'buscando'
+                      ? <><Loader2 size={12} className="animate-spin" /> Buscando...</>
+                      : <><Search size={12} /> Consultar</>}
+                  </button>
+                  <button
+                    style={TOOLBAR_BTN}
+                    onClick={() => {
+                      setConsultaAutoraEstado('novo_cadastro');
+                      setShowCadastroAutora(true);
+                      setDraftAutora(p => ({ ...p, tipo_pessoa: queryAutora.tipoPessoa, cpf_cnpj: queryAutora.cpf }));
+                    }}
+                  >
+                    <Plus size={12} /> Novo
+                  </button>
+                </div>
               </div>
 
-              {/* Table of included autoras */}
+              {/* Resultado da busca */}
+              {consultaAutoraEstado === 'nao_encontrado' && (
+                <div style={{ padding: '10px 12px', background: '#fffbeb', borderBottom: '1px solid #fde68a', fontSize: 12, color: '#92400e' }}>
+                  Nenhuma pessoa encontrada. Clique em <strong>Novo</strong> para cadastrar.
+                </div>
+              )}
+              {consultaAutoraEstado === 'resultado' && resultadosAutora.length > 0 && (
+                <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                    Resultado da consulta
+                  </div>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Pessoa</th>
+                        <th>CPF</th>
+                        <th>Nome</th>
+                        <th>Info. Extras</th>
+                        <th>Principal</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultadosAutora.map(r => (
+                        <tr key={r.id}>
+                          <td>Física</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{r.cpf}</td>
+                          <td style={{ fontWeight: 600 }}>{r.nome}</td>
+                          <td style={{ fontSize: 11, color: '#6b7280' }}>{r.infoExtras}</td>
+                          <td>
+                            <select style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}>
+                              <option>Sim ▼</option>
+                            </select>
+                          </td>
+                          <td>
+                            <button
+                              style={{ ...BTN_PRIMARY, height: 24, padding: '0 8px', fontSize: 11 }}
+                              onClick={() => incluirAutoraFromResultado(r)}
+                            >
+                              Incluir
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Cadastro inline */}
+              {showCadastroAutora && (
+                <div style={{ padding: '0 12px' }}>
+                  {renderCadastroForm(draftAutora, setDraftAutora, incluirAutoraCadastro, 'autora')}
+                </div>
+              )}
+
+              {/* Partes incluídas */}
               {form.partesAutoras.length > 0 && (
                 <div style={{ padding: 12 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
-                    Partes autoras incluídas ({form.partesAutoras.length}):
+                    Partes requerentes incluídas ({form.partesAutoras.length}):
                   </div>
                   <table className="data-table">
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Nome / Razão Social</th>
-                        <th>CPF / CNPJ</th>
+                        <th>Nome</th>
+                        <th>CPF</th>
                         <th>Tipo</th>
+                        <th>Justiça Gratuita</th>
                         <th></th>
                       </tr>
                     </thead>
@@ -1207,9 +1551,23 @@ export default function PeticaoInicialPage() {
                           <td>{i + 1}</td>
                           <td style={{ fontWeight: 600 }}>{p.nome}</td>
                           <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.cpf_cnpj || '—'}</td>
-                          <td>{p.tipo_pessoa === 'fisica' ? 'Pessoa Física' : 'Pessoa Jurídica'}</td>
+                          <td>{p.tipo_pessoa}</td>
                           <td>
-                            <button onClick={() => removerAutora(i)} style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
+                            <select
+                              style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}
+                              value={p.justicaGratuita}
+                              onChange={e => {
+                                const arr = [...form.partesAutoras];
+                                arr[i] = { ...arr[i], justicaGratuita: e.target.value };
+                                update('partesAutoras', arr);
+                              }}
+                            >
+                              {justicaGratuitaOpcoes.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </td>
+                          <td>
+                            <button onClick={() => removerAutora(i)}
+                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
                               <Trash2 size={13} />
                             </button>
                           </td>
@@ -1219,17 +1577,30 @@ export default function PeticaoInicialPage() {
                   </table>
                 </div>
               )}
+
+              {/* Footer links */}
+              <div style={{
+                padding: '8px 12px', borderTop: '1px solid #e5e7eb',
+                fontSize: 12, display: 'flex', gap: 16,
+              }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                  Ver totalizador de partes
+                </button>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                  Custas Processuais
+                </button>
+              </div>
             </StepPanel>
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 4 — Partes Rés
+            STEP 4 — Partes Requeridas
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 4 && (
           <div style={{ margin: 16 }}>
             <StepPanel>
-              <div style={SECT_HEADER}>Polo Passivo — Partes Rés</div>
+              <div style={SECT_HEADER}>Polo Passivo — Partes Requeridas</div>
 
               {errors.reu && (
                 <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
@@ -1237,123 +1608,214 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
 
-              {/* Draft form */}
+              {/* Consulta form */}
               <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
-                  Incluir Parte Ré
+                  Consultar Pessoa
                 </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
-                  {/* Tipo */}
+                <div style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr', gap: 8, alignItems: 'end', marginBottom: 8 }}>
                   <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>Tipo de Pessoa</label>
-                    <select
-                      className="form-field"
-                      value={draftReu.tipo_pessoa}
-                      onChange={e => setDraftReu(d => ({ ...d, tipo_pessoa: e.target.value as 'fisica' | 'juridica' }))}
-                    >
-                      <option value="juridica">Pessoa Jurídica</option>
-                      <option value="fisica">Pessoa Física</option>
+                    <label style={FORM_LABEL}>Tipo de Pessoa</label>
+                    <select className="form-field" value={queryReu.tipoPessoa}
+                      onChange={e => setQueryReu(q => ({ ...q, tipoPessoa: e.target.value }))}>
+                      {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
-
-                  {/* Nome / autocomplete */}
-                  <div style={{ position: 'relative', gridColumn: draftReu.tipo_pessoa === 'juridica' ? '1 / -1' : undefined }}>
-                    <label className="form-label" style={{ fontSize: 11 }}>
-                      {draftReu.tipo_pessoa === 'juridica' ? 'Denominação / Razão Social *' : 'Nome Completo *'}
-                    </label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      value={reuSearch}
-                      onChange={e => handleReuSearchChange(e.target.value)}
-                      onFocus={() => reuSugestoes.length > 0 && setShowReuSugestoes(true)}
-                      placeholder={draftReu.tipo_pessoa === 'juridica' ? 'Ex.: INSS, União Federal, CEF...' : 'Nome do réu'}
-                      autoComplete="off"
-                    />
-                    {showReuSugestoes && reuSugestoes.length > 0 && (
-                      <div style={{
-                        position: 'absolute', zIndex: 50, background: '#fff',
-                        border: '1px solid #d1d5db', borderRadius: 4, boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                        width: '100%', maxHeight: 240, overflowY: 'auto',
-                      }}>
-                        {reuSugestoes.map(e => (
-                          <div
-                            key={e.cnpj}
-                            onClick={() => selecionarEntidade(e)}
-                            style={{
-                              padding: '7px 12px', fontSize: 12, cursor: 'pointer',
-                              borderBottom: '1px solid #f3f4f6',
-                            }}
-                            onMouseEnter={ev => (ev.currentTarget.style.background = '#eff6ff')}
-                            onMouseLeave={ev => (ev.currentTarget.style.background = '')}
-                          >
-                            <div style={{ fontWeight: 600, color: '#1e3a5f' }}>{e.nome}</div>
-                            <div style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace' }}>{e.cnpj}</div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* CNPJ / CPF */}
                   <div>
-                    <label className="form-label" style={{ fontSize: 11 }}>
-                      {draftReu.tipo_pessoa === 'juridica' ? 'CNPJ' : 'CPF'}
+                    <label style={FORM_LABEL}>CPF</label>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className="form-field"
+                        value={queryReu.cpf}
+                        onChange={e => setQueryReu(q => ({ ...q, cpf: formatCpfCnpj(e.target.value) }))}
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                        disabled={queryReu.semCpf}
+                        style={{ flex: 1, background: queryReu.semCpf ? '#f9fafb' : undefined }}
+                      />
+                    </div>
+                    <label className="pje-checkbox" style={{ fontSize: 11, marginTop: 2 }}>
+                      <input type="checkbox" checked={queryReu.semCpf}
+                        onChange={e => setQueryReu(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
+                      <span>Sem CPF</span>
                     </label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      value={draftReu.cpf_cnpj}
-                      onChange={e => setDraftReu(d => ({ ...d, cpf_cnpj: formatCpfCnpj(e.target.value) }))}
-                      placeholder={draftReu.tipo_pessoa === 'juridica' ? '00.000.000/0000-00' : '000.000.000-00'}
-                      maxLength={18}
-                    />
+                  </div>
+                  <div>
+                    <label style={FORM_LABEL}>Nome (opcional)</label>
+                    <input type="text" className="form-field" value={queryReu.nome}
+                      onChange={e => setQueryReu(q => ({ ...q, nome: e.target.value }))}
+                      placeholder="Parte do nome para filtrar" />
                   </div>
                 </div>
 
-                <button
-                  style={{ ...TOOLBAR_BTN, marginTop: 12, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a', height: 36, padding: '0 20px', fontSize: 13 }}
-                  onClick={incluirReu}
-                >
-                  <Plus size={14} /> Incluir Parte Ré
-                </button>
+                {queryReu.semCpf && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 8, marginBottom: 8 }}>
+                    <div>
+                      <label style={FORM_LABEL}>Outros Documentos</label>
+                      <select className="form-field" value={queryReu.outroDocTipo}
+                        onChange={e => setQueryReu(q => ({ ...q, outroDocTipo: e.target.value }))}>
+                        <option value="">-- Selecione --</option>
+                        {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={FORM_LABEL}>Número</label>
+                      <input type="text" className="form-field" value={queryReu.outroDocNum}
+                        onChange={e => setQueryReu(q => ({ ...q, outroDocNum: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    style={{ ...BTN_PRIMARY, height: 32 }}
+                    onClick={consultarReu}
+                    disabled={consultaReuEstado === 'buscando'}
+                  >
+                    {consultaReuEstado === 'buscando'
+                      ? <><Loader2 size={12} className="animate-spin" /> Buscando...</>
+                      : <><Search size={12} /> Consultar</>}
+                  </button>
+                  <button
+                    style={TOOLBAR_BTN}
+                    onClick={() => {
+                      setConsultaReuEstado('novo_cadastro');
+                      setShowCadastroReu(true);
+                      setDraftReu(p => ({ ...p, tipo_pessoa: queryReu.tipoPessoa, cpf_cnpj: queryReu.cpf }));
+                    }}
+                  >
+                    <Plus size={12} /> Novo
+                  </button>
+                </div>
               </div>
 
-              {/* Table of included réus */}
+              {consultaReuEstado === 'nao_encontrado' && (
+                <div style={{ padding: '10px 12px', background: '#fffbeb', borderBottom: '1px solid #fde68a', fontSize: 12, color: '#92400e' }}>
+                  Nenhuma pessoa encontrada. Clique em <strong>Novo</strong> para cadastrar.
+                </div>
+              )}
+
+              {consultaReuEstado === 'resultado' && resultadosReu.length > 0 && (
+                <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                    Resultado da consulta
+                  </div>
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Pessoa</th>
+                        <th>CPF</th>
+                        <th>Nome</th>
+                        <th>Info. Extras</th>
+                        <th>Qualificação</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resultadosReu.map(r => {
+                        // mask CPF: show first 4 digits then ***
+                        const cpfMasked = r.cpf.length >= 4
+                          ? r.cpf.slice(0, 4) + r.cpf.slice(4).replace(/\d/g, '*')
+                          : r.cpf;
+                        return (
+                          <tr key={r.id}>
+                            <td>Física</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{cpfMasked}</td>
+                            <td style={{ fontWeight: 600 }}>{r.nome}</td>
+                            <td style={{ fontSize: 11, color: '#6b7280' }}>{r.infoExtras}</td>
+                            <td>
+                              <select style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}>
+                                <option>REQUERIDO ▼</option>
+                                <option>RÉSTAURADO</option>
+                              </select>
+                            </td>
+                            <td>
+                              <button
+                                style={{ ...BTN_PRIMARY, height: 24, padding: '0 8px', fontSize: 11 }}
+                                onClick={() => incluirReuFromResultado(r)}
+                              >
+                                Incluir
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {showCadastroReu && (
+                <div style={{ padding: '0 12px' }}>
+                  {renderCadastroForm(draftReu, setDraftReu, incluirReuCadastro, 'reu')}
+                </div>
+              )}
+
               {form.partesReus.length > 0 && (
                 <div style={{ padding: 12 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
-                    Partes rés incluídas ({form.partesReus.length}):
+                    Partes requeridas incluídas ({form.partesReus.length}):
                   </div>
                   <table className="data-table">
                     <thead>
                       <tr>
                         <th>#</th>
-                        <th>Nome / Razão Social</th>
-                        <th>CNPJ / CPF</th>
+                        <th>Nome</th>
+                        <th>CPF</th>
                         <th>Tipo</th>
+                        <th>Qualificação</th>
                         <th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {form.partesReus.map((p, i) => (
-                        <tr key={i}>
-                          <td>{i + 1}</td>
-                          <td style={{ fontWeight: 600 }}>{p.nome}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.cpf_cnpj || '—'}</td>
-                          <td>{p.tipo_pessoa === 'fisica' ? 'Pessoa Física' : 'Pessoa Jurídica'}</td>
-                          <td>
-                            <button onClick={() => removerReu(i)} style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
-                              <Trash2 size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {form.partesReus.map((p, i) => {
+                        const cpfMasked = p.cpf_cnpj && p.cpf_cnpj.length >= 4
+                          ? p.cpf_cnpj.slice(0, 4) + p.cpf_cnpj.slice(4).replace(/\d/g, '*')
+                          : p.cpf_cnpj;
+                        return (
+                          <tr key={i}>
+                            <td>{i + 1}</td>
+                            <td style={{ fontWeight: 600 }}>{p.nome}</td>
+                            <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{cpfMasked || '—'}</td>
+                            <td>{p.tipo_pessoa}</td>
+                            <td>
+                              <select
+                                style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}
+                                value={p.qualificacao}
+                                onChange={e => {
+                                  const arr = [...form.partesReus];
+                                  arr[i] = { ...arr[i], qualificacao: e.target.value };
+                                  update('partesReus', arr);
+                                }}
+                              >
+                                <option value="REQUERIDO">REQUERIDO</option>
+                                <option value="RÉSTAURADO">RÉSTAURADO</option>
+                                <option value="INTIMADO">INTIMADO</option>
+                              </select>
+                            </td>
+                            <td>
+                              <button onClick={() => removerReu(i)}
+                                style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               )}
+
+              <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb', fontSize: 12, display: 'flex', gap: 16 }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                  Ver totalizador de partes
+                </button>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                  Custas Processuais
+                </button>
+              </div>
             </StepPanel>
           </div>
         )}
@@ -1362,152 +1824,207 @@ export default function PeticaoInicialPage() {
             STEP 5 — Documentos
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 5 && (
-          <div style={{ margin: 16 }}>
-            <StepPanel>
-              <div style={SECT_HEADER}>Documentos e Petição</div>
+          <>
+            <Step5NavBar />
+            <div style={{ margin: 16 }}>
+              <StepPanel>
+                <div style={SECT_HEADER}>Documentos e Petição</div>
 
-              {tarefa && (tarefa.documentos_obrigatorios as string[])?.length > 0 && (
-                <div style={{ padding: '8px 12px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: 12, color: '#1e40af' }}>
-                  <strong>Documentos exigidos pelo professor:</strong>{' '}
-                  {(tarefa.documentos_obrigatorios as string[]).join(', ')}
-                </div>
-              )}
-
-              {errors.peticao_inicial && (
-                <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
-                  {errors.peticao_inicial}
-                </div>
-              )}
-
-              {/* Documents list */}
-              <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {form.documentos.map((doc, idx) => (
-                  <div key={idx} style={{ border: '1px solid #d1d5db', borderRadius: 4, background: '#fff' }}>
-                    {/* Doc header */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '6px 10px', background: idx === 0 ? '#f0fdf4' : '#f9fafb',
-                      borderBottom: doc.collapsed ? 'none' : '1px solid #e5e7eb',
-                      borderRadius: doc.collapsed ? 4 : '4px 4px 0 0',
-                    }}>
-                      <button
-                        onClick={() => updateDoc(idx, 'collapsed', !doc.collapsed)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', flexShrink: 0 }}
-                        title={doc.collapsed ? 'Expandir' : 'Recolher'}
-                      >
-                        {doc.collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                      </button>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', flex: 1 }}>
-                        {idx === 0 ? 'PETIÇÃO INICIAL (obrigatório)' : `ANEXO ${idx}`}
-                        {doc.nomeArquivo && (
-                          <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: 8 }}>
-                            ✓ {doc.nomeArquivo}
-                          </span>
-                        )}
-                      </span>
-                      {/* Sigilo badge */}
-                      <select
-                        value={doc.sigilo}
-                        onChange={e => updateDoc(idx, 'sigilo', e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        style={{ fontSize: 11, border: '1px solid #d1d5db', borderRadius: 3, padding: '2px 4px', background: '#fff', cursor: 'pointer' }}
-                      >
-                        <option value="publico">Público</option>
-                        <option value="sigiloso">Sigiloso</option>
-                      </select>
-                      {idx > 0 && (
-                        <button
-                          onClick={() => removeDoc(idx)}
-                          style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', flexShrink: 0 }}
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Doc body */}
-                    {!doc.collapsed && (
-                      <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: '200px 1fr', gap: 10, alignItems: 'start' }}>
-                        <div>
-                          <label className="form-label" style={{ fontSize: 11 }}>Tipo do Documento</label>
-                          <select
-                            className="form-field"
-                            value={doc.tipo}
-                            onChange={e => updateDoc(idx, 'tipo', e.target.value)}
-                            disabled={idx === 0}
-                          >
-                            {tiposDocumento.map(t => <option key={t} value={t}>{t}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="form-label" style={{ fontSize: 11 }}>
-                            Arquivo (PDF ou DOCX, máx. 10 MB){idx === 0 && ' *'}
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <label style={{
-                              display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-                              padding: '5px 14px', fontSize: 12, fontWeight: 600,
-                              border: `1px solid ${errors.peticao_inicial && idx === 0 ? '#dc2626' : '#d1d5db'}`,
-                              borderRadius: 4, background: '#fff', color: '#374151',
-                            }}>
-                              <Upload size={13} />
-                              {doc.nomeArquivo ? 'Alterar' : 'Selecionar arquivo'}
-                              <input
-                                type="file"
-                                style={{ display: 'none' }}
-                                accept=".pdf,.docx"
-                                onChange={e => {
-                                  const file = e.target.files?.[0];
-                                  if (!file) return;
-                                  if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande (máx 10 MB).'); return; }
-                                  updateDoc(idx, 'arquivo', file);
-                                  updateDoc(idx, 'nomeArquivo', file.name);
-                                  if (idx === 0) setErrors(err => { const n = { ...err }; delete n.peticao_inicial; return n; });
-                                }}
-                              />
-                            </label>
-                            {doc.nomeArquivo && (
-                              <span style={{ fontSize: 11, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                <CheckCircle size={12} /> {doc.nomeArquivo}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {form.documentos.length < 10 && (
+                {/* Links */}
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 12, display: 'flex', gap: 12 }}>
                   <button
-                    style={{ ...TOOLBAR_BTN, alignSelf: 'flex-start', height: 34, padding: '0 16px', fontSize: 12 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12 }}
                     onClick={addDoc}
                   >
-                    <Plus size={13} /> Adicionar Anexo
+                    Adicionar mais Documentos
                   </button>
-                )}
-              </div>
+                  <span style={{ color: '#d1d5db' }}>|</span>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12 }}>
+                    Digitar Documento
+                  </button>
+                  <span style={{ color: '#d1d5db' }}>|</span>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12 }}>
+                    Opções Avançadas
+                  </button>
+                </div>
 
-              {/* Informações Adicionais */}
-              <div style={{ margin: '0 12px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}>
-                <div style={{ ...SECT_HEADER, borderRadius: '4px 4px 0 0', fontSize: 11, padding: '5px 10px' }}>
-                  Informações Adicionais (marque o que se aplica)
-                </div>
-                <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 6 }}>
-                  {(Object.keys(INFO_ADICIONAIS_LABELS) as Array<keyof InfoAdicionais>).map(key => (
-                    <label key={key} className="pje-checkbox" style={{ fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={form.infoAdicionais[key]}
-                        onChange={() => toggleInfoAdic(key)}
-                      />
-                      <span>{INFO_ADICIONAIS_LABELS[key]}</span>
-                    </label>
+                {errors.peticao_inicial && (
+                  <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
+                    {errors.peticao_inicial}
+                  </div>
+                )}
+
+                {/* Documents list */}
+                <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {form.documentos.map((doc, idx) => (
+                    <div key={idx} style={{ border: '1px solid #d1d5db', borderRadius: 4, background: '#fff' }}>
+                      {/* Doc header */}
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '6px 10px',
+                        background: idx === 0 ? '#f0fdf4' : '#f9fafb',
+                        borderBottom: doc.collapsed ? 'none' : '1px solid #e5e7eb',
+                        borderRadius: doc.collapsed ? 4 : '4px 4px 0 0',
+                      }}>
+                        <button
+                          onClick={() => updateDoc(idx, 'collapsed', !doc.collapsed)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', flexShrink: 0, fontSize: 14, fontWeight: 700 }}
+                        >
+                          {doc.collapsed ? '[+]' : '[ - ]'}
+                        </button>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', flex: 1 }}>
+                          Documento {idx + 1}
+                          {doc.nomeArquivo && (
+                            <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: 8 }}>
+                              ✓ {doc.nomeArquivo}
+                            </span>
+                          )}
+                        </span>
+                        <select
+                          value={doc.sigilo}
+                          onChange={e => updateDoc(idx, 'sigilo', e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: 11, border: '1px solid #d1d5db', borderRadius: 3, padding: '2px 4px', background: '#fff', cursor: 'pointer' }}
+                        >
+                          {siglosDocumento.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        {idx > 0 && (
+                          <button
+                            onClick={() => removeDoc(idx)}
+                            style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', flexShrink: 0 }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Doc body */}
+                      {!doc.collapsed && (
+                        <div style={{ padding: '10px 12px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, alignItems: 'start' }}>
+                          <div>
+                            <label style={FORM_LABEL}>Tipo do Documento</label>
+                            <input
+                              type="text"
+                              className="form-field"
+                              value={doc.tipo}
+                              onChange={e => updateDoc(idx, 'tipo', e.target.value)}
+                              placeholder="Ex.: Petição Inicial, Procuração..."
+                              disabled={idx === 0}
+                              style={idx === 0 ? { background: '#f9fafb' } : undefined}
+                            />
+                          </div>
+                          <div>
+                            <label style={FORM_LABEL}>
+                              Arquivo (PDF ou DOCX, máx. 10 MB){idx === 0 && ' *'}
+                            </label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <label style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                                padding: '5px 14px', fontSize: 12, fontWeight: 600,
+                                border: `1px solid ${errors.peticao_inicial && idx === 0 ? '#dc2626' : '#d1d5db'}`,
+                                borderRadius: 4, background: '#fff', color: '#374151',
+                              }}>
+                                <Upload size={13} />
+                                {doc.nomeArquivo ? 'Alterar' : 'Selecionar arquivo'}
+                                <input
+                                  type="file"
+                                  style={{ display: 'none' }}
+                                  accept=".pdf,.docx"
+                                  onChange={e => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande (máx 10 MB).'); return; }
+                                    updateDoc(idx, 'arquivo', file);
+                                    updateDoc(idx, 'nomeArquivo', file.name);
+                                    if (idx === 0) setErrors(err => { const n = { ...err }; delete n.peticao_inicial; return n; });
+                                  }}
+                                />
+                              </label>
+                              {doc.nomeArquivo && (
+                                <span style={{ fontSize: 11, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <CheckCircle size={12} /> {doc.nomeArquivo}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ))}
+
+                  {/* Confirmar seleção */}
+                  <div style={{ marginTop: 4 }}>
+                    <button
+                      style={{
+                        ...TOOLBAR_BTN,
+                        background: form.docsConfirmados ? '#16a34a' : '#e8e8e8',
+                        color: form.docsConfirmados ? '#fff' : '#1a1a1a',
+                        height: 34, padding: '0 16px',
+                      }}
+                      onClick={() => update('docsConfirmados', !form.docsConfirmados)}
+                    >
+                      {form.docsConfirmados ? '✓ Seleção confirmada' : 'Confirmar seleção de documentos'}
+                    </button>
+                  </div>
+
+                  {/* Docs confirmed table */}
+                  {form.docsConfirmados && form.documentos.some(d => d.nomeArquivo) && (
+                    <div style={{ border: '1px solid #bbf7d0', borderRadius: 4, background: '#f0fdf4', padding: 10, marginTop: 4 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 6 }}>
+                        Documentos confirmados para envio:
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                        <thead>
+                          <tr style={{ background: '#dcfce7' }}>
+                            <th style={{ padding: '4px 8px', textAlign: 'left' }}>#</th>
+                            <th style={{ padding: '4px 8px', textAlign: 'left' }}>Tipo</th>
+                            <th style={{ padding: '4px 8px', textAlign: 'left' }}>Arquivo</th>
+                            <th style={{ padding: '4px 8px', textAlign: 'left' }}>Sigilo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {form.documentos.filter(d => d.nomeArquivo).map((d, i) => (
+                            <tr key={i} style={{ borderBottom: '1px solid #d1fae5' }}>
+                              <td style={{ padding: '3px 8px' }}>{i + 1}</td>
+                              <td style={{ padding: '3px 8px' }}>{d.tipo || '—'}</td>
+                              <td style={{ padding: '3px 8px', color: '#16a34a' }}>✓ {d.nomeArquivo}</td>
+                              <td style={{ padding: '3px 8px', fontSize: 11, color: '#6b7280' }}>{d.sigilo}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </StepPanel>
-          </div>
+
+                {/* Informações Adicionais — 3 colunas × 3 linhas */}
+                <div style={{ margin: '0 12px 12px', border: '1px solid #d1d5db', borderRadius: 4 }}>
+                  <div style={{ ...SECT_HEADER, borderRadius: '4px 4px 0 0', fontSize: 11, padding: '5px 10px' }}>
+                    Informações Adicionais (marque o que se aplica)
+                  </div>
+                  <div style={{
+                    padding: '10px 14px',
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: '6px 16px',
+                  }}>
+                    {INFO_ADICIONAIS_LABELS.map(([key, label]) => (
+                      <label key={key} className="pje-checkbox" style={{ fontSize: 12 }}>
+                        <input
+                          type="checkbox"
+                          checked={form.infoAdicionais[key]}
+                          onChange={() => toggleInfoAdic(key)}
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </StepPanel>
+            </div>
+            {/* Bottom nav bar */}
+            <Step5NavBar />
+          </>
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
@@ -1529,13 +2046,14 @@ export default function PeticaoInicialPage() {
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
                     <tbody>
-                      <SumRow label="Foro" value={forosJFMG.find(f => f.codigo === form.foro)?.descricao ?? form.foro} />
-                      <SumRow label="Rito / Procedimento" value={form.rito} />
+                      <SumRow label="Tribunal" value={form.tribunal} />
+                      <SumRow label="Área" value={form.area} />
                       <SumRow label="Classe Processual" value={form.classe} />
+                      <SumRow label="Tipo de Justiça" value={form.tipoJustica} />
+                      <SumRow label="Nível de Sigilo" value={form.nivelSigilo} />
                       <SumRow label="Valor da Causa" value={`R$ ${form.valorCausa}`} />
-                      <SumRow label="Nível de Sigilo" value={niveisSigno.find(n => n.codigo === form.nivelSigilo)?.descricao ?? form.nivelSigilo} />
-                      {form.prioridade && <SumRow label="Prioridade" value={form.prioridade} />}
-                      {form.renunciaExcedente && <SumRow label="Renúncia ao excedente" value="Sim" />}
+                      {form.processoOriginario && <SumRow label="Processo Originário" value={form.processoOriginario} />}
+                      {form.remeterPlantao && <SumRow label="Plantão Judiciário" value="Sim" />}
                       <SumRow label="Distribuição" value="Automática — vara será sorteada pelo sistema" />
                     </tbody>
                   </table>
@@ -1549,11 +2067,9 @@ export default function PeticaoInicialPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
                     <tbody>
                       {form.assuntos.map((a, i) => (
-                        <SumRow
-                          key={a.codigo}
+                        <SumRow key={a.codigo}
                           label={i === 0 ? 'Assunto Principal' : `Assunto ${i + 1}`}
-                          value={`${a.descricao} (${a.codigo})`}
-                        />
+                          value={`${a.descricao} (${a.codigo})`} />
                       ))}
                     </tbody>
                   </table>
@@ -1562,12 +2078,12 @@ export default function PeticaoInicialPage() {
                 {/* Polo ativo */}
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
-                    Polo Ativo — Autores ({form.partesAutoras.length})
+                    Polo Ativo — Requerentes ({form.partesAutoras.length})
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
                     <tbody>
                       {form.partesAutoras.map((p, i) => (
-                        <SumRow key={i} label={`Autor ${i + 1}`} value={`${p.nome}${p.cpf_cnpj ? ` — ${p.cpf_cnpj}` : ''}`} />
+                        <SumRow key={i} label={`Requerente ${i + 1}`} value={`${p.nome}${p.cpf_cnpj ? ` — ${p.cpf_cnpj}` : ''}`} />
                       ))}
                       <SumRow label="Advogado(a)" value={`${user?.nome_completo} — ${user?.oab_simulado}`} />
                     </tbody>
@@ -1577,12 +2093,12 @@ export default function PeticaoInicialPage() {
                 {/* Polo passivo */}
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
-                    Polo Passivo — Réus ({form.partesReus.length})
+                    Polo Passivo — Requeridos ({form.partesReus.length})
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
                     <tbody>
                       {form.partesReus.map((p, i) => (
-                        <SumRow key={i} label={`Réu ${i + 1}`} value={`${p.nome}${p.cpf_cnpj ? ` — ${p.cpf_cnpj}` : ''}`} />
+                        <SumRow key={i} label={`Requerido ${i + 1}`} value={`${p.nome}${p.cpf_cnpj ? ` — ${p.cpf_cnpj}` : ''}`} />
                       ))}
                     </tbody>
                   </table>
@@ -1596,17 +2112,15 @@ export default function PeticaoInicialPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
                     <tbody>
                       {form.documentos.map((d, i) => (
-                        <SumRow
-                          key={i}
+                        <SumRow key={i}
                           label={i === 0 ? 'Petição Inicial' : `Anexo ${i}`}
-                          value={d.nomeArquivo || '(sem arquivo)'}
-                        />
+                          value={d.nomeArquivo || '(sem arquivo)'} />
                       ))}
                     </tbody>
                   </table>
                 </div>
 
-                {/* Informações Adicionais marcadas */}
+                {/* Info Adicionais */}
                 {Object.values(form.infoAdicionais).some(Boolean) && (
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
@@ -1614,10 +2128,10 @@ export default function PeticaoInicialPage() {
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
                       <tbody>
-                        {(Object.entries(form.infoAdicionais) as Array<[keyof InfoAdicionais, boolean]>)
-                          .filter(([, v]) => v)
-                          .map(([k]) => (
-                            <SumRow key={k} label="Marcado" value={INFO_ADICIONAIS_LABELS[k]} />
+                        {INFO_ADICIONAIS_LABELS
+                          .filter(([key]) => form.infoAdicionais[key])
+                          .map(([key, label]) => (
+                            <SumRow key={key} label="Marcado" value={label} />
                           ))}
                       </tbody>
                     </table>
@@ -1627,12 +2141,12 @@ export default function PeticaoInicialPage() {
                 {/* Declarations */}
                 <div style={{ border: '1px solid #d1d5db', padding: '10px 14px', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                    <input type="checkbox" id="decl1" />
+                    <input type="checkbox" />
                     <span>Declaro, sob as penas da lei, que as informações prestadas são verdadeiras e de minha inteira responsabilidade.</span>
                   </label>
                   <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                    <input type="checkbox" id="decl2" />
-                    <span>Estou ciente de que este é um <strong>sistema de simulação educacional</strong> sem vínculo com a Justiça Federal real.</span>
+                    <input type="checkbox" />
+                    <span>Estou ciente de que este é um <strong>sistema de simulação educacional</strong> sem vínculo com o TJMG real.</span>
                   </label>
                 </div>
               </div>
@@ -1641,19 +2155,17 @@ export default function PeticaoInicialPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 7 — Comprovante (Receipt)
+            STEP 7 — Comprovante
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 7 && (
           <div style={{ maxWidth: 700, margin: '24px auto', padding: '0 16px' }}>
             <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: 4, overflow: 'hidden' }}>
-              {/* Header */}
               <div style={{ background: 'hsl(210,100%,20%)', color: '#fff', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700 }}>
                 <CheckCircle size={16} />
                 PETIÇÃO PROTOCOLADA COM SUCESSO
               </div>
 
               <div style={{ padding: 24 }}>
-                {/* Icon and title */}
                 <div style={{ textAlign: 'center', paddingBottom: 20, borderBottom: '1px solid #e5e7eb', marginBottom: 20 }}>
                   <CheckCircle size={56} style={{ color: '#16a34a', margin: '0 auto 12px' }} />
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'hsl(210,100%,20%)' }}>
@@ -1664,24 +2176,26 @@ export default function PeticaoInicialPage() {
                   </div>
                 </div>
 
-                {/* Receipt table */}
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 4, padding: 16, marginBottom: 20 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.04em' }}>
                     Comprovante de Protocolo
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <tbody>
-                      {[
+                      {([
                         ['Número do Processo', <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'hsl(210,100%,20%)', fontSize: 13 }}>{form.numeroProcesso}</span>],
                         ['Vara Distribuída', form.varaProtocolo],
+                        ['Tribunal', form.tribunal],
+                        ['Área', form.area],
                         ['Classe Processual', form.classe],
                         ['Assunto Principal', form.assuntos[0]?.descricao ?? '—'],
                         ['Valor da Causa', `R$ ${form.valorCausa}`],
+                        ['Nível de Sigilo', form.nivelSigilo],
                         ['Advogado(a)', `${user?.nome_completo} — ${user?.oab_simulado}`],
                         ['Data / Hora', form.dataProtocolo ? new Date(form.dataProtocolo).toLocaleString('pt-BR') : '—'],
-                      ].map(([label, value], i) => (
+                      ] as [string, React.ReactNode][]).map(([label, value], i) => (
                         <tr key={i} style={{ borderBottom: '1px solid #bfdbfe' }}>
-                          <td style={{ padding: '6px 10px', fontWeight: 600, width: 180, color: '#1e3a5f' }}>{label}</td>
+                          <td style={{ padding: '6px 10px', fontWeight: 600, width: 200, color: '#1e3a5f' }}>{label}</td>
                           <td style={{ padding: '6px 10px', color: '#374151' }}>{value}</td>
                         </tr>
                       ))}
@@ -1689,13 +2203,11 @@ export default function PeticaoInicialPage() {
                   </table>
                 </div>
 
-                {/* Alert */}
                 <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '10px 14px', fontSize: 12, color: '#92400e', marginBottom: 20 }}>
                   Acompanhe as movimentações e intimações pelo painel do sistema.
                   Você será notificado(a) quando o professor/juízo emitir despachos ou intimações.
                 </div>
 
-                {/* Action buttons */}
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                   <button
                     style={{ ...TOOLBAR_BTN, height: 44, padding: '0 24px', fontSize: 13 }}
@@ -1715,7 +2227,6 @@ export default function PeticaoInicialPage() {
           </div>
         )}
 
-        {/* Bottom padding */}
         <div style={{ height: 40 }} />
       </div>
     </EprocLayout>
