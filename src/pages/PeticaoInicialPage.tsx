@@ -15,7 +15,12 @@ import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } 
 import { generateProcessNumber } from '@/lib/cnj';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, getDemoTarefas } from '@/data/demoStore';
-import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2 } from 'lucide-react';
+import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder } from 'lucide-react';
+
+function countLeaves(node: NodoAssunto): number {
+  if (!node.subitens || node.subitens.length === 0) return 1;
+  return node.subitens.reduce((acc, s) => acc + countLeaves(s), 0);
+}
 import type { Tarefa } from '@/integrations/supabase/types';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
