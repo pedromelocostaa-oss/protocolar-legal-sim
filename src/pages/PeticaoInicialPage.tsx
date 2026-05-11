@@ -1018,25 +1018,6 @@ export default function PeticaoInicialPage() {
         {step === 1 && (
           <div style={{ margin: 16 }}>
             <StepPanel>
-              {/* Apoio por IA toggle */}
-              <div style={{
-                padding: '8px 12px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0',
-                display: 'flex', alignItems: 'center', gap: 12,
-              }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#166534' }}>⚡ Apoio por IA</span>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={form.apoioIA}
-                    onChange={e => update('apoioIA', e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 11, color: '#374151' }}>
-                    {form.apoioIA ? 'Ativado — sugestões automáticas habilitadas' : 'Desativado'}
-                  </span>
-                </label>
-              </div>
-
               <div style={SECT_HEADER}>Identificação do Processo</div>
 
               {/* Two-column layout */}
