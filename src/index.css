@@ -27,11 +27,11 @@
     --ring: 210 100% 20%;
     --radius: 0.1rem;
 
-    /* e-Proc header - institutional blue #003366 */
-    --eproc-header: 210 100% 20%;
+    /* e-Proc header - TJMG teal #1a5276 */
+    --eproc-header: 205 60% 28%;
     --eproc-header-fg: 0 0% 100%;
-    --eproc-header-avatar: 213 60% 40%;
-    --eproc-header-sub: 213 100% 28%;
+    --eproc-header-avatar: 205 60% 45%;
+    --eproc-header-sub: 205 55% 22%;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
@@ -46,16 +46,16 @@
     --warning-foreground: 0 0% 10%;
     --info: 210 60% 50%;
     --info-foreground: 0 0% 100%;
-    --panel-header: 210 100% 20%;
+    --panel-header: 205 60% 28%;
     --panel-header-foreground: 0 0% 100%;
-    --tab-active: 210 100% 20%;
+    --tab-active: 205 60% 28%;
     --tab-inactive: 210 10% 45%;
     --table-header: 213 35% 90%;
     --table-stripe: 213 20% 97%;
     --field-bg: 0 0% 100%;
     --field-border: 210 12% 68%;
-    --section-title: 210 100% 20%;
-    --bg-page: 213 28% 93%;
+    --section-title: 205 60% 28%;
+    --bg-page: 0 0% 94%;
   }
 }
 
@@ -90,7 +90,7 @@
     @apply flex items-center gap-1 px-3 py-1 text-[11px] border-b;
     background-color: hsl(var(--eproc-header-sub));
     color: hsl(var(--eproc-header-fg));
-    border-color: hsl(210 80% 25%);
+    border-color: hsl(205 55% 18%);
   }
   .eproc-header-sub a, .eproc-header-sub button {
     @apply hover:underline cursor-pointer bg-transparent border-none;
@@ -231,7 +231,7 @@
     background-color: hsl(var(--eproc-header));
   }
   .btn-primary:hover {
-    background-color: hsl(213 100% 28%);
+    background-color: hsl(205 60% 22%);
   }
   .btn-secondary {
     @apply btn-system bg-white;
@@ -239,7 +239,7 @@
     border-color: hsl(var(--eproc-header));
   }
   .btn-secondary:hover {
-    background-color: hsl(213 40% 95%);
+    background-color: hsl(205 40% 95%);
   }
   .btn-success {
     @apply btn-system text-white border-transparent;
@@ -477,6 +477,88 @@
     background: transparent;
     border: none;
     padding: 0;
+  }
+
+  /* ===== ACCESSIBILITY BAR ===== */
+  .eproc-accessibility-bar {
+    @apply flex items-center justify-between px-4 py-0.5 text-[10px];
+    background-color: hsl(205 55% 18%);
+    color: hsl(var(--eproc-header-fg));
+    opacity: 0.9;
+  }
+  .eproc-accessibility-btn {
+    @apply cursor-pointer hover:underline bg-transparent border-none text-[10px];
+    color: hsl(var(--eproc-header-fg));
+  }
+
+  /* ===== TJMG LOGO TEXT ===== */
+  .eproc-tjmg-logo {
+    font-size: 20px;
+    font-weight: 900;
+    color: #f5c518;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    font-family: Arial, sans-serif;
+  }
+  .eproc-header-search {
+    @apply text-[12px] border px-2 py-0.5;
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 2px;
+    width: 180px;
+  }
+  .eproc-header-search::placeholder { color: rgba(255,255,255,0.6); }
+  .eproc-header-search:focus { outline: 1px solid rgba(255,255,255,0.6); }
+
+  /* ===== STEP PANEL (PeticaoInicialPage) ===== */
+  .eproc-step-panel {
+    @apply bg-white border border-border mb-0;
+    border-radius: 0;
+  }
+  .eproc-step-panel-title {
+    @apply px-3 py-1.5 text-[12px] font-bold uppercase tracking-wide text-white;
+    background-color: hsl(var(--panel-header));
+    letter-spacing: 0.03em;
+  }
+  .eproc-page-title {
+    @apply px-4 py-2 text-[13px] font-bold text-white border-b-2;
+    background-color: hsl(var(--eproc-header));
+    border-color: hsl(205 60% 22%);
+  }
+  .eproc-step-breadcrumb {
+    @apply flex items-center gap-1 px-4 py-1.5 bg-white border-b border-border text-[11px];
+    flex-wrap: wrap;
+  }
+  .eproc-nav-toolbar {
+    @apply flex items-center gap-1.5 px-4 py-1.5 border-b border-border;
+    background-color: #dde3ea;
+    flex-wrap: wrap;
+  }
+  .eproc-nav-btn {
+    @apply text-[12px] font-semibold px-3 py-1 border cursor-pointer;
+    background: #e8e8e8;
+    color: #1a1a1a;
+    border-color: #a0a0a0;
+    border-radius: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .eproc-nav-btn:hover { background: #d8d8d8; }
+  .eproc-nav-btn:disabled { opacity: 0.4; cursor: default; }
+  .eproc-nav-btn-primary {
+    @apply eproc-nav-btn text-white;
+    background-color: hsl(var(--eproc-header));
+    border-color: hsl(205 60% 22%);
+    color: white;
+  }
+  .eproc-nav-btn-primary:hover { background-color: hsl(205 60% 22%); }
+  .eproc-nav-separator {
+    width: 1px; height: 22px;
+    background: #b0b8c4;
+    margin: 0 4px;
+    display: inline-block;
   }
 }
 

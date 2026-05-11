@@ -1,7 +1,7 @@
 import {
-  LayoutDashboard, FolderOpen, FileText, Bell, Search,
-  Settings, Users, BookOpen, ClipboardList, ChevronDown,
-  ChevronRight, PlusCircle, List, Globe,
+  LayoutDashboard, FolderOpen,
+  Settings, Users, BookOpen, ClipboardList,
+  List, Globe,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,7 +31,7 @@ function SidebarItem({ icon, label, path, onClick, active, disabled, badge }: Si
       {badge != null && badge > 0 && (
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white bg-red-500">{badge}</span>
       )}
-      {!badge && <ChevronRight size={11} className="opacity-30" />}
+      {!badge && <span className="text-[11px] opacity-30">›</span>}
     </button>
   );
 }
@@ -54,7 +54,7 @@ function ExpandableItem({ icon, label, children, defaultOpen = false, active }: 
       >
         {icon ?? <span className="text-[10px] opacity-60">▸</span>}
         <span className="flex-1 text-left font-semibold">{label}</span>
-        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+        {open ? <span className="text-[11px]">▾</span> : <span className="text-[11px]">›</span>}
       </button>
       {open && <div className="pje-sidebar-submenu">{children}</div>}
     </div>
@@ -186,8 +186,8 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
       <div className="mt-auto p-2 border-t border-border">
         <div className="text-[9px] text-muted-foreground leading-tight">
           Simulador Educacional<br />
-          Não possui vínculo com a<br />
-          Justiça Federal ou TRF1
+          Não possui vínculo com<br />
+          o TJMG
         </div>
       </div>
     </aside>

@@ -235,11 +235,11 @@ function AssuntoNode({
           paddingLeft: pl, paddingTop: 5, paddingBottom: 5, paddingRight: 8,
           cursor: 'pointer', fontSize: 12, borderBottom: '1px solid #f3f4f6',
           background: isDetailActive ? '#eff6ff' : isSelected ? '#dbeafe' : 'transparent',
-          color: isSelected ? '#1e40af' : '#374151',
+          color: isSelected ? 'hsl(205,60%,28%)' : '#374151',
           display: 'flex', alignItems: 'center', gap: 6,
         }}
       >
-        <span style={{ width: 14, fontWeight: 700, color: isSelected ? '#1e40af' : '#9ca3af' }}>
+        <span style={{ width: 14, fontWeight: 700, color: isSelected ? 'hsl(205,60%,28%)' : '#9ca3af' }}>
           {isSelected ? '✓' : '○'}
         </span>
         <span style={{ flex: 1 }}>{node.descricao}</span>
@@ -260,7 +260,7 @@ function AssuntoNode({
           background: isTop ? '#fff' : '#f9fafb',
           borderBottom: '1px solid #e5e7eb',
           display: 'flex', alignItems: 'center', gap: 6,
-          color: '#1e3a5f',
+          color: '#1a4f72',
           letterSpacing: isTop ? 0.2 : 0,
         }}
       >
@@ -680,11 +680,11 @@ export default function PeticaoInicialPage() {
   };
   const TOOLBAR_BTN_DISABLED: React.CSSProperties = { ...TOOLBAR_BTN, opacity: 0.45, cursor: 'default' };
   const BTN_PRIMARY: React.CSSProperties = {
-    ...TOOLBAR_BTN, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a',
+    ...TOOLBAR_BTN, background: 'hsl(205,60%,28%)', color: '#fff', borderColor: 'hsl(205,60%,22%)',
   };
 
   const SECT_HEADER: React.CSSProperties = {
-    background: 'hsl(210,100%,20%)', color: '#fff',
+    background: 'hsl(205,60%,28%)', color: '#fff',
     padding: '5px 10px', fontSize: 12, fontWeight: 700, letterSpacing: '0.03em',
   };
 
@@ -705,7 +705,7 @@ export default function PeticaoInicialPage() {
       </button>
       <button style={TOOLBAR_BTN} onClick={back}>◀ Anterior</button>
       <button
-        style={{ ...TOOLBAR_BTN, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a' }}
+        style={{ ...TOOLBAR_BTN, background: 'hsl(205,60%,28%)', color: '#fff', borderColor: 'hsl(205,60%,22%)' }}
         onClick={next}
       >
         Finalizar ▶
@@ -728,7 +728,7 @@ export default function PeticaoInicialPage() {
     const set = (k: keyof Parte, v: unknown) => setDraft(d => ({ ...d, [k]: v }));
     return (
       <div style={{ border: '1px solid #c7d2fe', borderRadius: 4, margin: '12px 0', background: '#f8faff' }}>
-        <div style={{ background: '#3730a3', color: '#fff', padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
+        <div style={{ background: 'hsl(205,60%,28%)', color: '#fff', padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
           Cadastro de Pessoa Física — Novo Registro
         </div>
         <div style={{ padding: 12 }}>
@@ -866,7 +866,7 @@ export default function PeticaoInicialPage() {
           </div>
 
           {/* Endereço */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 4, marginTop: 8, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1a4f72', marginBottom: 4, marginTop: 8, textTransform: 'uppercase' }}>
             Endereço
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 80px', gap: 8, marginBottom: 8 }}>
@@ -913,7 +913,7 @@ export default function PeticaoInicialPage() {
           </div>
 
           {/* Contato */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e3a5f', marginBottom: 4, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#1a4f72', marginBottom: 4, textTransform: 'uppercase' }}>
             Contato
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
@@ -949,9 +949,9 @@ export default function PeticaoInicialPage() {
         {/* ── Page title ── */}
         {!isReceipt && (
           <div style={{
-            background: 'hsl(210,100%,20%)', color: '#fff',
+            background: 'hsl(205,60%,28%)', color: '#fff',
             padding: '8px 16px', fontSize: 13, fontWeight: 700,
-            borderBottom: '2px solid hsl(210,100%,30%)',
+            borderBottom: '2px solid hsl(205,60%,22%)',
           }}>
             {isConfirm
               ? 'Peticionamento Eletrônico — Confirmar Ajuizamento'
@@ -980,7 +980,7 @@ export default function PeticaoInicialPage() {
             )}
             {step === 6 && (
               <button
-                style={{ ...TOOLBAR_BTN, background: '#1e40af', color: '#fff', borderColor: '#1e3a8a' }}
+                style={{ ...TOOLBAR_BTN, background: 'hsl(205,60%,28%)', color: '#fff', borderColor: 'hsl(205,60%,22%)' }}
                 onClick={protocolar}
                 disabled={loading}
               >
@@ -1007,7 +1007,7 @@ export default function PeticaoInicialPage() {
                   {i > 0 && <span style={{ color: '#9ca3af' }}>&gt;&gt;</span>}
                   <span style={{
                     fontWeight: active ? 700 : done ? 600 : 400,
-                    color: active ? 'hsl(210,100%,20%)' : done ? '#16a34a' : '#6b7280',
+                    color: active ? 'hsl(205,60%,28%)' : done ? '#16a34a' : '#6b7280',
                   }}>
                     {done && '✓ '}{name}
                   </span>
@@ -1022,7 +1022,7 @@ export default function PeticaoInicialPage() {
           <div style={{
             margin: '12px 16px 0', padding: '8px 12px',
             background: '#eff6ff', border: '1px solid #bfdbfe',
-            fontSize: 12, color: '#1e40af', borderRadius: 4,
+            fontSize: 12, color: 'hsl(205,60%,28%)', borderRadius: 4,
           }}>
             <strong>Tarefa vinculada:</strong> {tarefa.titulo}
             {tarefa.prazo && (
@@ -1293,7 +1293,7 @@ export default function PeticaoInicialPage() {
                       borderTop: '1px solid #e5e7eb', padding: '8px 12px',
                       background: '#eff6ff', fontSize: 12,
                     }}>
-                      <div style={{ fontWeight: 700, color: '#1e3a5f', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 700, color: '#1a4f72', marginBottom: 4 }}>
                         {selectedLeaf.descricao} <span style={{ fontFamily: 'monospace', fontWeight: 400, color: '#6b7280' }}>({selectedLeaf.codigo})</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
@@ -1325,7 +1325,7 @@ export default function PeticaoInicialPage() {
 
                 {/* Right: assuntos incluídos */}
                 <div style={{ padding: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
                     Assuntos selecionados ({form.assuntos.length})
                   </div>
                   {form.assuntos.length === 0 ? (
@@ -1347,7 +1347,7 @@ export default function PeticaoInicialPage() {
                           <tr key={a.codigo} style={{ borderBottom: '1px solid #bfdbfe' }}>
                             <td style={{ padding: '3px 6px', color: '#6b7280' }}>{i + 1}</td>
                             <td style={{ padding: '3px 6px' }}>{a.descricao}</td>
-                            <td style={{ padding: '3px 6px', fontWeight: 600, color: i === 0 ? '#1e40af' : '#374151' }}>
+                            <td style={{ padding: '3px 6px', fontWeight: 600, color: i === 0 ? 'hsl(205,60%,28%)' : '#374151' }}>
                               {i === 0 ? 'Principal' : 'Secundário'}
                             </td>
                             <td style={{ padding: '3px 4px', textAlign: 'center' }}>
@@ -1390,7 +1390,7 @@ export default function PeticaoInicialPage() {
 
               {/* Consulta form */}
               <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 8 }}>
                   Consultar Pessoa
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr', gap: 8, alignItems: 'end', marginBottom: 8 }}>
@@ -1479,7 +1479,7 @@ export default function PeticaoInicialPage() {
               )}
               {consultaAutoraEstado === 'resultado' && resultadosAutora.length > 0 && (
                 <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
                     Resultado da consulta
                   </div>
                   <table className="data-table">
@@ -1530,7 +1530,7 @@ export default function PeticaoInicialPage() {
               {/* Partes incluídas */}
               {form.partesAutoras.length > 0 && (
                 <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
                     Partes requerentes incluídas ({form.partesAutoras.length}):
                   </div>
                   <table className="data-table">
@@ -1582,10 +1582,10 @@ export default function PeticaoInicialPage() {
                 padding: '8px 12px', borderTop: '1px solid #e5e7eb',
                 fontSize: 12, display: 'flex', gap: 16,
               }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
                   Ver totalizador de partes
                 </button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
                   Custas Processuais
                 </button>
               </div>
@@ -1609,7 +1609,7 @@ export default function PeticaoInicialPage() {
 
               {/* Consulta form */}
               <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 8 }}>
                   Consultar Pessoa
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr', gap: 8, alignItems: 'end', marginBottom: 8 }}>
@@ -1697,7 +1697,7 @@ export default function PeticaoInicialPage() {
 
               {consultaReuEstado === 'resultado' && resultadosReu.length > 0 && (
                 <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
                     Resultado da consulta
                   </div>
                   <table className="data-table">
@@ -1753,7 +1753,7 @@ export default function PeticaoInicialPage() {
 
               {form.partesReus.length > 0 && (
                 <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
                     Partes requeridas incluídas ({form.partesReus.length}):
                   </div>
                   <table className="data-table">
@@ -1808,10 +1808,10 @@ export default function PeticaoInicialPage() {
               )}
 
               <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb', fontSize: 12, display: 'flex', gap: 16 }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
                   Ver totalizador de partes
                 </button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12, textDecoration: 'underline' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
                   Custas Processuais
                 </button>
               </div>
@@ -1832,17 +1832,17 @@ export default function PeticaoInicialPage() {
                 {/* Links */}
                 <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', fontSize: 12, display: 'flex', gap: 12 }}>
                   <button
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12 }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12 }}
                     onClick={addDoc}
                   >
                     Adicionar mais Documentos
                   </button>
                   <span style={{ color: '#d1d5db' }}>|</span>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12 }}>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12 }}>
                     Digitar Documento
                   </button>
                   <span style={{ color: '#d1d5db' }}>|</span>
-                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(210,100%,20%)', fontSize: 12 }}>
+                  <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12 }}>
                     Opções Avançadas
                   </button>
                 </div>
@@ -1871,7 +1871,7 @@ export default function PeticaoInicialPage() {
                         >
                           {doc.collapsed ? '[+]' : '[ - ]'}
                         </button>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: '#1e3a5f', flex: 1 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', flex: 1 }}>
                           Documento {idx + 1}
                           {doc.nomeArquivo && (
                             <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: 8 }}>
@@ -2040,7 +2040,7 @@ export default function PeticaoInicialPage() {
               <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Processo */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', marginBottom: 4, textTransform: 'uppercase' }}>
                     Informações do Processo
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
@@ -2060,7 +2060,7 @@ export default function PeticaoInicialPage() {
 
                 {/* Assuntos */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', marginBottom: 4, textTransform: 'uppercase' }}>
                     Assuntos ({form.assuntos.length})
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
@@ -2076,7 +2076,7 @@ export default function PeticaoInicialPage() {
 
                 {/* Polo ativo */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', marginBottom: 4, textTransform: 'uppercase' }}>
                     Polo Ativo — Requerentes ({form.partesAutoras.length})
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
@@ -2091,7 +2091,7 @@ export default function PeticaoInicialPage() {
 
                 {/* Polo passivo */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', marginBottom: 4, textTransform: 'uppercase' }}>
                     Polo Passivo — Requeridos ({form.partesReus.length})
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
@@ -2105,7 +2105,7 @@ export default function PeticaoInicialPage() {
 
                 {/* Documentos */}
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', marginBottom: 4, textTransform: 'uppercase' }}>
                     Documentos ({form.documentos.length})
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
@@ -2122,7 +2122,7 @@ export default function PeticaoInicialPage() {
                 {/* Info Adicionais */}
                 {Object.values(form.infoAdicionais).some(Boolean) && (
                   <div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(210,100%,20%)', marginBottom: 4, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', marginBottom: 4, textTransform: 'uppercase' }}>
                       Informações Adicionais
                     </div>
                     <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e5e7eb' }}>
@@ -2159,7 +2159,7 @@ export default function PeticaoInicialPage() {
         {step === 7 && (
           <div style={{ maxWidth: 700, margin: '24px auto', padding: '0 16px' }}>
             <div style={{ background: '#fff', border: '1px solid #d1d5db', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ background: 'hsl(210,100%,20%)', color: '#fff', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700 }}>
+              <div style={{ background: 'hsl(205,60%,28%)', color: '#fff', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700 }}>
                 <CheckCircle size={16} />
                 PETIÇÃO PROTOCOLADA COM SUCESSO
               </div>
@@ -2167,7 +2167,7 @@ export default function PeticaoInicialPage() {
               <div style={{ padding: 24 }}>
                 <div style={{ textAlign: 'center', paddingBottom: 20, borderBottom: '1px solid #e5e7eb', marginBottom: 20 }}>
                   <CheckCircle size={56} style={{ color: '#16a34a', margin: '0 auto 12px' }} />
-                  <div style={{ fontSize: 18, fontWeight: 700, color: 'hsl(210,100%,20%)' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: 'hsl(205,60%,28%)' }}>
                     Petição Distribuída com Sucesso!
                   </div>
                   <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>
@@ -2176,13 +2176,13 @@ export default function PeticaoInicialPage() {
                 </div>
 
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 4, padding: 16, marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(205,60%,28%)', textTransform: 'uppercase', marginBottom: 10, letterSpacing: '0.04em' }}>
                     Comprovante de Protocolo
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <tbody>
                       {([
-                        ['Número do Processo', <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'hsl(210,100%,20%)', fontSize: 13 }}>{form.numeroProcesso}</span>],
+                        ['Número do Processo', <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'hsl(205,60%,28%)', fontSize: 13 }}>{form.numeroProcesso}</span>],
                         ['Vara Distribuída', form.varaProtocolo],
                         ['Tribunal', form.tribunal],
                         ['Área', form.area],
@@ -2194,7 +2194,7 @@ export default function PeticaoInicialPage() {
                         ['Data / Hora', form.dataProtocolo ? new Date(form.dataProtocolo).toLocaleString('pt-BR') : '—'],
                       ] as [string, React.ReactNode][]).map(([label, value], i) => (
                         <tr key={i} style={{ borderBottom: '1px solid #bfdbfe' }}>
-                          <td style={{ padding: '6px 10px', fontWeight: 600, width: 200, color: '#1e3a5f' }}>{label}</td>
+                          <td style={{ padding: '6px 10px', fontWeight: 600, width: 200, color: '#1a4f72' }}>{label}</td>
                           <td style={{ padding: '6px 10px', color: '#374151' }}>{value}</td>
                         </tr>
                       ))}
@@ -2215,7 +2215,7 @@ export default function PeticaoInicialPage() {
                     Ver Meus Processos
                   </button>
                   <button
-                    style={{ ...TOOLBAR_BTN, height: 44, padding: '0 24px', fontSize: 13, background: 'hsl(210,100%,20%)', color: '#fff', borderColor: 'hsl(210,100%,15%)' }}
+                    style={{ ...TOOLBAR_BTN, height: 44, padding: '0 24px', fontSize: 13, background: 'hsl(205,60%,28%)', color: '#fff', borderColor: 'hsl(205,60%,20%)' }}
                     onClick={() => navigate('/dashboard')}
                   >
                     Voltar ao Painel
