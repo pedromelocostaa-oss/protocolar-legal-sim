@@ -38,6 +38,7 @@ export interface Database {
           primeiro_acesso?: boolean;
           ativo?: boolean;
         };
+        Relationships: [];
       };
       turmas: {
         Row: {
@@ -62,6 +63,7 @@ export interface Database {
           semestre?: string | null;
           ano?: number | null;
         };
+        Relationships: [];
       };
       tarefas: {
         Row: {
@@ -106,6 +108,7 @@ export interface Database {
           peticao_referencia?: string | null;
           peticao_referencia_arquivo_nome?: string | null;
         };
+        Relationships: [];
       };
       processos: {
         Row: {
@@ -154,6 +157,7 @@ export interface Database {
           feedback_professor?: string | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       partes: {
         Row: {
@@ -189,6 +193,7 @@ export interface Database {
           email?: string | null;
           telefone?: string | null;
         };
+        Relationships: [];
       };
       documentos: {
         Row: {
@@ -216,6 +221,7 @@ export interface Database {
           nome_arquivo?: string;
           storage_path?: string;
         };
+        Relationships: [];
       };
       movimentacoes: {
         Row: {
@@ -237,6 +243,7 @@ export interface Database {
         Update: {
           descricao?: string;
         };
+        Relationships: [];
       };
       intimacoes: {
         Row: {
@@ -265,6 +272,7 @@ export interface Database {
           lida?: boolean;
           data_ciencia?: string | null;
         };
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
