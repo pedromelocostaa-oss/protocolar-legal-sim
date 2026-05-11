@@ -5,6 +5,9 @@ import { formatCpf, cpfToEmail } from '@/lib/masks';
 
 interface AuthUser extends Profile {
   email?: string;
+  name?: string;
+  curso?: string;
+  instituicao?: string;
 }
 
 interface AuthContextType {
